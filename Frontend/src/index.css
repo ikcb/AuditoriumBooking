@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.NAV {
+    @apply relative
+}
+
+.NAV::after {
+    @apply content-[""] absolute bg-slate-600 h-[3px] left-0 w-0 duration-300 -bottom-[5px] rounded
+}
+
+.NAV:hover::after {
+    @apply w-full
+}
+
+/* For Webkit-based browsers (Chrome, Safari and Opera) */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* For IE, Edge and Firefox */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
