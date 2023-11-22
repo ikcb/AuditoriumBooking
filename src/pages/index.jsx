@@ -61,38 +61,48 @@ const IndexPage = () => {
 
   const isDateDisabled = (date) => {
     const oneWeekAgo = new Date();
+    const next3months = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    return date < oneWeekAgo;
+    next3months.setDate(next3months.getDate() + 93);
+    return date < oneWeekAgo || date > next3months ;
   };
 
   return (
     <div className="min-h-screen flex bg-gray-100">
       <div className="flex-1">
         <h1 className="text-2xl font-bold mb-4 text-center mt-16">Auditorium Booking</h1>
+        <AlertDialog open={open} onOpenChange={setOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Go to Date?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Do you want to go to {date.toISOString().split('T')[0]} to Check/Book the Auditorium?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>No</AlertDialogCancel>
+              <AlertDialogAction onClick={async () => {
+                await Router.push(`/book?date=${date.toISOString().split('T')[0]}`);
+                setOpen(false);
+              }}>Yes</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <Desktop>
-          <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Go to Date?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Do you want to go to {date.toISOString().split('T')[0]} to Check/Book the Auditorium?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>No</AlertDialogCancel>
-                <AlertDialogAction onClick={async () => {
-                  await Router.push(`/book?date=${date.toISOString().split('T')[0]}`);
-                  setOpen(false);
-                }}>Yes</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+
 
           <div className="flex">
             <div className="flex-1">
               <Calendar
                 className="bg-white rounded-lg overflow-hidden shadow-lg p-8 m-4"
-                onChange={(newDate) => {setDate(newDate); setOpen(true);}}
+                onChange={(newDate) => {
+                  const nextDay = new Date(newDate);
+                  nextDay.setDate(newDate.getDate() + 1);
+                
+                  setDate(nextDay);
+                  setOpen(true);
+                }}
+                
                 onActiveStartDateChange={({ activeStartDate, view }) => {
                   if (view === 'month') {
                     handleMonthChange(activeStartDate);
@@ -122,19 +132,24 @@ const IndexPage = () => {
         <Mobile>
           <Calendar
             className="rounded-lg overflow-hidden shadow-lg p-8 mx-4 sm:mx-auto w-full sm:w-96"
-            onChange={(newDate) => setDate(newDate)}
-            value={date}
+            onChange={(newDate) => {
+              const nextDay = new Date(newDate);
+              nextDay.setDate(newDate.getDate() + 1);
+            
+              setDate(nextDay);
+              setOpen(true);
+            }}
             onActiveStartDateChange={({ activeStartDate, view }) => {
               if (view === 'month') {
                 handleMonthChange(activeStartDate);
               }
             }}
             tileClassName={({ date, view }) =>
-              view === "month" && date.toDateString() === new Date().toDateString()
-                ? "highlighted-date"
+              view === "month" && events.some((event) => (event.date) === (date.getDate()))
+                ? "event-date"
                 : null
             }
-            tileDisabled={({ date }) => isDateDisabled(date)}
+            tileDisabled={({ date, view }) => view === "month" ? isDateDisabled(date) : false}
           />
           <div className="p-4">
             <ul className="border-2 border-black rounded-lg p-4 mx-3">
