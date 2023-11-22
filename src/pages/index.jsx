@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import { Mobile, Desktop } from "@/components/Platform";
 import EventTile from "@/components/EventCard";
@@ -12,27 +12,44 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button";
-
-
-const sampleEvents = [
-  {
-    id: 1,
-    date: new Date(2023, 10, 25, 10, 0), // Example: November 25, 2023, 10:00 AM
-    duration: "1 hour",
-    title: "Sample Event 1",
-    description: "This is a sample event description.",
-    category: "General",
-    host: "John Doe",
-  },
-  // Add more sample events as needed
-];
+} from "@/components/ui/alert-dialog";
 
 const IndexPage = () => {
   const [date, setDate] = useState(new Date());
-  const wait = () => new Promise((resolve) => setTimeout(resolve, 1000));
+  const [events, setEvents] = useState([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch(`/api/geteventsinmonth?month=${date.getMonth() + 1}`);
+        if (response.ok) {
+          const data = await response.json();
+          setEvents(data.data);
+        } else {
+          console.error("Failed to fetch events:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error while fetching events:", error);
+      }
+    };
+
+    fetchEvents();
+  }, [date]);
+
+  const handleMonthChange = async (newActiveStartDate) => {
+    try {
+      const response = await fetch(`/api/geteventsinmonth?month=${newActiveStartDate.getMonth() + 1}`);
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data.data);
+      } else {
+        console.error("Failed to fetch events:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error while fetching events:", error);
+    }
+  };
 
   const getCurrentDateInfo = () => {
     const currentYear = date.getFullYear();
@@ -45,10 +62,8 @@ const IndexPage = () => {
   const isDateDisabled = (date) => {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
     return date < oneWeekAgo;
   };
-  const [open, setOpen] = React.useState(false);
 
   return (
     <div className="min-h-screen flex bg-gray-100">
@@ -65,27 +80,27 @@ const IndexPage = () => {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>No</AlertDialogCancel>
-                <AlertDialogAction onClick={
-                  async () => {
-                    await Router.push(`/book?date=${date.toISOString().split('T')[0]}`);
-                    setOpen(false)
-                  }
-                }>Yes</AlertDialogAction>
+                <AlertDialogAction onClick={async () => {
+                  await Router.push(`/book?date=${date.toISOString().split('T')[0]}`);
+                  setOpen(false);
+                }}>Yes</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-
-
 
           <div className="flex">
             <div className="flex-1">
               <Calendar
                 className="bg-white rounded-lg overflow-hidden shadow-lg p-8 m-4"
                 onChange={(newDate) => {setDate(newDate); setOpen(true);}}
-                value={date}
+                onActiveStartDateChange={({ activeStartDate, view }) => {
+                  if (view === 'month') {
+                    handleMonthChange(activeStartDate);
+                  }
+                }}
                 tileClassName={({ date, view }) =>
-                  view === "month" && date.toDateString() === new Date().toDateString()
-                    ? "highlighted-date"
+                  view === "month" && events.some((event) => (event.date) === (date.getDate()))
+                    ? "event-date"
                     : null
                 }
                 tileDisabled={({ date, view }) => view === "month" ? isDateDisabled(date) : false}
@@ -96,7 +111,7 @@ const IndexPage = () => {
                 <li>
                   <h2 className="text-xl font-bold mb-2">Upcoming Events</h2>
                 </li>
-                {sampleEvents.map((event) => (
+                {events.map((event) => (
                   <EventTile key={event.id} event={event} />
                 ))}
               </ul>
@@ -109,6 +124,11 @@ const IndexPage = () => {
             className="rounded-lg overflow-hidden shadow-lg p-8 mx-4 sm:mx-auto w-full sm:w-96"
             onChange={(newDate) => setDate(newDate)}
             value={date}
+            onActiveStartDateChange={({ activeStartDate, view }) => {
+              if (view === 'month') {
+                handleMonthChange(activeStartDate);
+              }
+            }}
             tileClassName={({ date, view }) =>
               view === "month" && date.toDateString() === new Date().toDateString()
                 ? "highlighted-date"
@@ -121,7 +141,7 @@ const IndexPage = () => {
               <li>
                 <h2 className="text-xl font-bold mb-2">Upcoming Events</h2>
               </li>
-              {sampleEvents.map((event) => (
+              {events.map((event) => (
                 <EventTile key={event.id} event={event} />
               ))}
             </ul>

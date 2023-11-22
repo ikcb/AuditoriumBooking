@@ -17,6 +17,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "src/components/EventCard.jsx", "src/pages/index.jsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "src/components/EventCard.jsx", "src/pages/index.jsx", "src/pages/book.jsx", "src/pages/api/geteventsinmonth.js"],
   "exclude": ["node_modules"]
 }
