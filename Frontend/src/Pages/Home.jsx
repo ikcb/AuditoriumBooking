@@ -15,14 +15,15 @@ function renderEventContent(eventInfo) {
   const arr = eventInfo.event.title.split("-");
   console.log(arr);
   return (
-    <>
-      <div className="overflow-x-auto scrollbar-hide">
-        <div className="w-[100px] bg-slate-600">{arr[0]}</div>
-        <div className="w-[100px] bg-slate-600 ">
+    <div className="overflow-hidden">
+    
+      <div className="overflow-x-auto scrollbar-hide bg-slate-600">
+        <div className="w-[100px] ">{arr[0]}</div>
+        <div className="w-[100px]  ">
           {arr[2]}-{arr[3]}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

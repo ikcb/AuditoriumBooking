@@ -25,6 +25,53 @@ export default function ViewRequests() {
       console.error("Error fetching data:", error);
     }
   };
+  const handleBookedClick = () => {
+        
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/ticket?status=booked`
+        );
+        setTickets(response.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+    fetchData();
+  }
+
+const handlePendingClick = () => {
+    
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/ticket?status=pending`
+        );
+        setTickets(response.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+      
+    };
+    fetchData();
+  }
+
+const handleDeclinedClick = () => {
+    
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/ticket?status=declined`
+        );
+        setTickets(response.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+    fetchData();
+}
+
+  
 
   const handleClick = async (id, status) => {
     try {
@@ -128,13 +175,19 @@ export default function ViewRequests() {
       columns,
       data: tickets,
     });
-
+    
   return (
     <>
       <div>
         <Toaster />
       </div>
-      <div className="min-h-[80vh] mx-8 overflow-x-auto flex justify-center">
+      <div className="mx-8 flex gap-1 ">
+      
+      <button onClick={handleBookedClick}  className="bg-gray-200 rounded-md p-2 shadow-md ">Booked</button>
+      <button onClick={handlePendingClick}  className="bg-gray-200 rounded-md p-2 shadow-md ">Pending</button>
+      <button onClick={handleDeclinedClick}  className="bg-gray-200 rounded-md p-2 shadow-md ">Declined</button>
+      </div>
+      <div className="min-h-[60vh]  mx-8 overflow-x-auto flex  justify-center items-center">
         <table
           {...getTableProps()}
           className="w-[1500px] divide-y divide-gray-200 bg-white shadow-md"
