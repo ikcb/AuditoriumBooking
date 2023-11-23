@@ -37,7 +37,7 @@ const Navbar = ({ home, setHome }) => {
   const token = localStorage.getItem("authtoken");
   return (
     <>
-      <div className="NAV_DIV  flex flex-row justify-between items-center py-3 px-5  ">
+      <div className="NAV_DIV  flex flex-row justify-between items-center py-3 px-5  shadow-md mb-4">
         <Link to="/">
           <div className="LOGO translate-x-2 max-sm:translate-x-0">
             <img src={Logo} alt="LOGO" className="h-20 max-sm:h-16" />
@@ -54,7 +54,7 @@ const Navbar = ({ home, setHome }) => {
             <p
               className={
                 token 
-                  ? "hidden": "NAV pb-0 font-semibold translate-x-[-10px]  px-3 flex justify-center max-sm:translate-x-[-20px] items-center py-4 cursor-pointer "
+                  ? "NAV pb-0 font-semibold translate-x-[-10px]  px-3 flex justify-center max-sm:translate-x-[-20px] items-center py-4 cursor-pointer ": "hidden"
               }
               onClick={handleViewClick}
             >
