@@ -9,11 +9,14 @@ import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import Footer from "../Component/Footer";
 
+
 export default function ViewRequests() {
   const [tickets, setTickets] = useState([]);
   useEffect(() => {
     fetchData();
   }, []);
+
+  const [activeButton, setActiveButton] = useState('pending');
 
   const fetchData = async () => {
     try {
@@ -26,7 +29,7 @@ export default function ViewRequests() {
     }
   };
   const handleBookedClick = () => {
-        
+    setActiveButton('booked')
     const fetchData = async () => {
       try {
         const response = await axios.get(
@@ -41,7 +44,7 @@ export default function ViewRequests() {
   }
 
 const handlePendingClick = () => {
-    
+  setActiveButton('pending')
     const fetchData = async () => {
       try {
         const response = await axios.get(
@@ -57,7 +60,7 @@ const handlePendingClick = () => {
   }
 
 const handleDeclinedClick = () => {
-    
+  setActiveButton('declined')
     const fetchData = async () => {
       try {
         const response = await axios.get(
@@ -183,11 +186,11 @@ const handleDeclinedClick = () => {
       </div>
       <div className="mx-8 flex gap-1 ">
       
-      <button onClick={handleBookedClick}  className="bg-gray-200 rounded-md p-2 shadow-md ">Booked</button>
-      <button onClick={handlePendingClick}  className="bg-gray-200 rounded-md p-2 shadow-md ">Pending</button>
-      <button onClick={handleDeclinedClick}  className="bg-gray-200 rounded-md p-2 shadow-md ">Declined</button>
+      <button onClick={handleBookedClick}  className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton=='booked'? 'bg-slate-800 text-white':'bg-gray-200'}`}>Booked</button>
+      <button onClick={handlePendingClick}  className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton=='pending'? 'bg-slate-800 text-white':'bg-gray-200'}`}>Pending</button>
+      <button onClick={handleDeclinedClick}  className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton=='declined'? 'bg-slate-800 text-white':'bg-gray-200'}`}>Declined</button>
       </div>
-      <div className="min-h-[60vh]  mx-8 overflow-x-auto flex  justify-center items-center">
+      <div className="min-h-[80vh]  mx-8 overflow-x-auto flex  justify-center items-start">
         <table
           {...getTableProps()}
           className="w-[1500px] divide-y divide-gray-200 bg-white shadow-md"
@@ -220,7 +223,7 @@ const handleDeclinedClick = () => {
                   {row.cells.map((cell) => (
                     <td
                       {...cell.getCellProps()}
-                      className="py-3 px-6 text-gray-700"
+                      className="py-3 px-3 text-gray-700"
                     >
                       {cell.render("Cell")}
                     </td>
