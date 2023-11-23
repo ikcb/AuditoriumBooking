@@ -42,6 +42,8 @@ const AddEvent = () => {
     eventdescription: "",
     date: "",
     clubname: "",
+    approvedBy:"",
+    file:null,
     startTime: 0,
     endTime: 15,
     status: "pending",
@@ -53,7 +55,9 @@ const AddEvent = () => {
       form.mobileno === "" ||
       form.eventdescription === "" ||
       form.date === "" ||
-      form.clubname === ""
+      form.clubname === "" ||
+      form.approvedBy === "" ||
+      form.file === null
     ) {
       toast.error("Form can't be empty!");
       return;
@@ -77,6 +81,8 @@ const AddEvent = () => {
           eventdescription: "",
           date: "",
           clubname: "",
+          approvedBy:"",
+          file:null,
           startTime: 0,
           endTime: 15,
           status: "pending",
@@ -159,6 +165,30 @@ const AddEvent = () => {
                     value={form.clubname}
                     onChange={(e) => {
                       setForm({ ...form, clubname: e.target.value });
+                    }}
+                  />
+                </div>
+                <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
+                  <label>Approved By</label>
+                  <input
+                    className="rounded-[5px] w-[200px] outline-none pl-2"
+                    type="text"
+                    required
+                    value={form.approvedBy}
+                    onChange={(e) => {
+                      setForm({ ...form, approvedBy: e.target.value });
+                    }}
+                  />
+                </div>
+                <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
+                  <label>PDF</label>
+                  <input
+                    className="rounded-[5px] w-[200px] outline-none pl-2"
+                    type="file"
+                    required
+                    value={form.file}
+                    onChange={(e) => {
+                      setForm({ ...form, file: e.target.value });
                     }}
                   />
                 </div>
