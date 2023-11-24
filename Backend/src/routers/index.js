@@ -50,7 +50,7 @@ router.put("/updateticket/:ticketId", auth,async (req, res) => {
   try {
     const { ticketId } = req.params;
     const { status } = req.body;
-    const allowedStatuses = ["booked", "declined"];
+    const allowedStatuses = ["booked", "declined", "pending"];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
@@ -61,9 +61,9 @@ router.put("/updateticket/:ticketId", auth,async (req, res) => {
       await ticket.save();
       res.json(ticket);
     } else {
-      return res
-        .status(400)
-        .json({ error: "Ticket already booked or declined" });
+      ticket.status = status;
+      await ticket.save();
+      res.json("Ticket status updated");
     }
   } catch (err) {
     console.error(err);

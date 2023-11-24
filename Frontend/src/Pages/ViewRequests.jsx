@@ -9,14 +9,13 @@ import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import Footer from "../Component/Footer";
 
-
 export default function ViewRequests() {
   const [tickets, setTickets] = useState([]);
   useEffect(() => {
     fetchData();
   }, []);
 
-  const [activeButton, setActiveButton] = useState('pending');
+  const [activeButton, setActiveButton] = useState("pending");
 
   const fetchData = async () => {
     try {
@@ -29,7 +28,7 @@ export default function ViewRequests() {
     }
   };
   const handleBookedClick = () => {
-    setActiveButton('booked')
+    setActiveButton("booked");
     const fetchData = async () => {
       try {
         const response = await axios.get(
@@ -41,10 +40,10 @@ export default function ViewRequests() {
       }
     };
     fetchData();
-  }
+  };
 
-const handlePendingClick = () => {
-  setActiveButton('pending')
+  const handlePendingClick = () => {
+    setActiveButton("pending");
     const fetchData = async () => {
       try {
         const response = await axios.get(
@@ -54,13 +53,12 @@ const handlePendingClick = () => {
       } catch (error) {
         console.error("Error fetching data:", error);
       }
-      
     };
     fetchData();
-  }
+  };
 
-const handleDeclinedClick = () => {
-  setActiveButton('declined')
+  const handleDeclinedClick = () => {
+    setActiveButton("declined");
     const fetchData = async () => {
       try {
         const response = await axios.get(
@@ -72,9 +70,7 @@ const handleDeclinedClick = () => {
       }
     };
     fetchData();
-}
-
-  
+  };
 
   const handleClick = async (id, status) => {
     try {
@@ -155,18 +151,23 @@ const handleDeclinedClick = () => {
         accessor: "status",
         Cell: ({ row }) => (
           <div className="flex gap-4">
-            <button
-              className="accept-button"
-              onClick={() => handleClick(row.original._id, "booked")}
-            >
-              <FaCheckCircle className="text-green-500 text-2xl" />
-            </button>
-            <button
-              className="decline-button"
-              onClick={() => handleClick(row.original._id, "declined")}
-            >
-              <FaTimesCircle className="text-red-500 text-2xl" />
-            </button>
+            {row.original.status === "pending" && (
+              <>
+                {" "}
+                <button
+                  className="accept-button"
+                  onClick={() => handleClick(row.original._id, "booked")}
+                >
+                  <FaCheckCircle className="text-green-500 text-2xl" />
+                </button>
+                <button
+                  className="decline-button"
+                  onClick={() => handleClick(row.original._id, "declined")}
+                >
+                  <FaTimesCircle className="text-red-500 text-2xl" />
+                </button>
+              </>
+            )}
           </div>
         ),
       },
@@ -178,17 +179,41 @@ const handleDeclinedClick = () => {
       columns,
       data: tickets,
     });
-    
+
   return (
     <>
       <div>
         <Toaster />
       </div>
       <div className="mx-8 flex gap-1 ">
-      
-      <button onClick={handleBookedClick}  className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton=='booked'? 'bg-slate-800 text-white':'bg-gray-200'}`}>Booked</button>
-      <button onClick={handlePendingClick}  className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton=='pending'? 'bg-slate-800 text-white':'bg-gray-200'}`}>Pending</button>
-      <button onClick={handleDeclinedClick}  className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton=='declined'? 'bg-slate-800 text-white':'bg-gray-200'}`}>Declined</button>
+        <button
+          onClick={handleBookedClick}
+          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${
+            activeButton == "booked" ? "bg-slate-800 text-white" : "bg-gray-200"
+          }`}
+        >
+          Booked
+        </button>
+        <button
+          onClick={handlePendingClick}
+          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${
+            activeButton == "pending"
+              ? "bg-slate-800 text-white"
+              : "bg-gray-200"
+          }`}
+        >
+          Pending
+        </button>
+        <button
+          onClick={handleDeclinedClick}
+          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${
+            activeButton == "declined"
+              ? "bg-slate-800 text-white"
+              : "bg-gray-200"
+          }`}
+        >
+          Declined
+        </button>
       </div>
       <div className="min-h-[80vh]  mx-8 overflow-x-auto flex  justify-center items-start">
         <table

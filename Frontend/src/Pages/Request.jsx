@@ -42,7 +42,7 @@ const AddEvent = () => {
     eventdescription: "",
     date: "",
     clubname: "",
-    approvedBy:"",
+    approve:"",
     file:null,
     startTime: 0,
     endTime: 15,
@@ -51,17 +51,22 @@ const AddEvent = () => {
   const [fileName,setFileName] = useState("");
   const [pdfData, setPdfData] = useState("");
 
-  function pdfToBinary(fileInput){
-    if (fileInput.files.length > 0) {
-      const pdfFile = fileInput.files[0];
+  function pdfToBinary(e) {
+    const file = e.target.files[0];
+
+    if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        const binaryData = reader.result;
-        setPdfData(binaryData);
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        setPdfData(base64String);
       };
-       reader.readAsBinaryString(pdfFile);  
+      reader.readAsDataURL(file);
+    }else{
+      return null;
     }
   }
+  
+  
   const handleSave = () => {
     if (
       form.name === "" ||
@@ -70,7 +75,7 @@ const AddEvent = () => {
       form.eventdescription === "" ||
       form.date === "" ||
       form.clubname === "" ||
-      form.approvedBy === "" ||
+      form.approve === "" ||
       form.file === null
     ) {
       toast.error("Form can't be empty!");
@@ -83,8 +88,10 @@ const AddEvent = () => {
       toast.error("Booking cannot be made on past date!");
       return;
     }
+    
     const req = {
-      ...form,
+     ...form,
+     file:pdfData,
       startTime: convertMinutesToTime(form.startTime),
       endTime: convertMinutesToTime(form.endTime),
     };
@@ -102,7 +109,7 @@ const AddEvent = () => {
           eventdescription: "",
           date: "",
           clubname: "",
-          approvedBy:"",
+          approve:"",
           file:null,
           startTime: 0,
           endTime: 15,
@@ -196,9 +203,9 @@ const AddEvent = () => {
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="text"
                     required
-                    value={form.approvedBy}
+                    value={form.approve}
                     onChange={(e) => {
-                      setForm({ ...form, approvedBy: e.target.value });
+                      setForm({ ...form, approve: e.target.value });
                     }}
                   />
                 </div>
@@ -210,6 +217,7 @@ const AddEvent = () => {
                     required
                     value={form.file}
                     onChange={(e) => {
+                      pdfToBinary(e);
                       setForm({ ...form, file: e.target.value });
                     }}
                   />
