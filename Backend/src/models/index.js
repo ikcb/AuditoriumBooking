@@ -31,6 +31,14 @@ const ticketSchema = new mongoose.Schema({
     type: String,
     required: [true, "Please provide us your Club Name"],
   },
+  approve: {
+    type: String,
+    required: [true, "Please provide us your approval"],
+  },
+  file: {
+    type: String,
+    required: [true, "Please provide us your file"],
+  },
   startTime: {
     type: String,
     required: [true, "Please provide us your Start Time"],
