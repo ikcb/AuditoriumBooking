@@ -42,8 +42,8 @@ const AddEvent = () => {
     eventdescription: "",
     date: "",
     clubname: "",
-    approve:"",
-    file:"",
+    approvedBy:"",
+    file:null,
     startTime: 0,
     endTime: 15,
     status: "pending",
@@ -70,8 +70,8 @@ const AddEvent = () => {
       form.eventdescription === "" ||
       form.date === "" ||
       form.clubname === "" ||
-      form.approve === "" ||
-      form.file === ""
+      form.approvedBy === "" ||
+      form.file === null
     ) {
       toast.error("Form can't be empty!");
       return;
@@ -102,7 +102,7 @@ const AddEvent = () => {
           eventdescription: "",
           date: "",
           clubname: "",
-          approve: "",
+          approvedBy:"",
           file:null,
           startTime: 0,
           endTime: 15,
@@ -196,9 +196,9 @@ const AddEvent = () => {
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="text"
                     required
-                    value={form.approve}
+                    value={form.approvedBy}
                     onChange={(e) => {
-                      setForm({ ...form, approve: e.target.value });
+                      setForm({ ...form, approvedBy: e.target.value });
                     }}
                   />
                 </div>
@@ -208,12 +208,9 @@ const AddEvent = () => {
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="file"
                     required
-                    value={fileName}
+                    value={form.file}
                     onChange={(e) => {
-                      setFileName(e.target.value)
-                      pdfToBinary(e.target);
-                      setForm({ ...form, file: pdfData });
-                      console.log(pdfData)
+                      setForm({ ...form, file: e.target.value });
                     }}
                   />
                 </div>
