@@ -87,8 +87,7 @@ userSchemaRegistration.methods.generateAuthToken = async function () {
     this.tokens = this.tokens.concat({ token: token });
     await this.save();
     return token;
-  }
-  catch (error) {
+  } catch (error) {
     console.log("the error part" + error);
   }
 };

@@ -42,16 +42,16 @@ const AddEvent = () => {
     eventdescription: "",
     date: "",
     clubname: "",
-    approve:"",
-    file:"",
+    approve: "",
+    file: "",
     startTime: 0,
     endTime: 15,
     status: "pending",
   });
-  const [fileName,setFileName] = useState("");
+  const [fileName, setFileName] = useState("");
   const [pdfData, setPdfData] = useState("");
 
-  function pdfToBinary(fileInput){
+  function pdfToBinary(fileInput) {
     if (fileInput.files.length > 0) {
       const pdfFile = fileInput.files[0];
       const reader = new FileReader();
@@ -59,7 +59,7 @@ const AddEvent = () => {
         const binaryData = reader.result;
         setPdfData(binaryData);
       };
-       reader.readAsBinaryString(pdfFile);  
+      reader.readAsBinaryString(pdfFile);
     }
   }
   const handleSave = () => {
@@ -103,12 +103,12 @@ const AddEvent = () => {
           date: "",
           clubname: "",
           approve: "",
-          file:null,
+          file: null,
           startTime: 0,
           endTime: 15,
           status: "pending",
         });
-        setFileName("")
+        setFileName("");
       })
       .catch((err) => {
         console.log(err);
@@ -210,10 +210,10 @@ const AddEvent = () => {
                     required
                     value={fileName}
                     onChange={(e) => {
-                      setFileName(e.target.value)
+                      setFileName(e.target.value);
                       pdfToBinary(e.target);
                       setForm({ ...form, file: pdfData });
-                      console.log(pdfData)
+                      console.log(pdfData);
                     }}
                   />
                 </div>
