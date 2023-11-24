@@ -6,6 +6,7 @@ const bcrypt = require("bcryptjs");
 const saltRounds = 10;
 
 router.post("/createticket", async (req, res) => {
+
   try {
     const {
       name,
@@ -14,14 +15,14 @@ router.post("/createticket", async (req, res) => {
       eventdescription,
       date,
       clubname,
+      approve,
+      file,
       startTime,
       endTime,
     } = req.body;
-
     if (!name || !email || !mobileno || !eventdescription || !date || !clubname || !startTime || !endTime) {
       return res.status(400).json({ error: "Please fill up all fields"});
-    }
-
+  }
     const ticket = new User.Ticket({
       name,
       email,
@@ -29,6 +30,8 @@ router.post("/createticket", async (req, res) => {
       eventdescription,
       date,
       clubname,
+      approve,
+      file,
       startTime,
       endTime,
     });

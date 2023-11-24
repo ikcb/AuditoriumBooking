@@ -48,6 +48,20 @@ const AddEvent = () => {
     endTime: 15,
     status: "pending",
   });
+  const [fileName,setFileName] = useState("");
+  const [pdfData, setPdfData] = useState("");
+
+  function pdfToBinary(fileInput){
+    if (fileInput.files.length > 0) {
+      const pdfFile = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        const binaryData = reader.result;
+        setPdfData(binaryData);
+      };
+       reader.readAsBinaryString(pdfFile);  
+    }
+  }
   const handleSave = () => {
     if (
       form.name === "" ||
@@ -62,12 +76,19 @@ const AddEvent = () => {
       toast.error("Form can't be empty!");
       return;
     }
-
+    // Check booking date
+    const currDate = new Date().getTime();
+    const bookDate = new Date(form.date).getTime();
+    if (bookDate < currDate) {
+      toast.error("Booking cannot be made on past date!");
+      return;
+    }
     const req = {
       ...form,
       startTime: convertMinutesToTime(form.startTime),
       endTime: convertMinutesToTime(form.endTime),
     };
+    console.log(req);
     axios
       .post(`${import.meta.env.VITE_BASE_URL}/createticket`, req)
       .then((res) => {
@@ -87,6 +108,7 @@ const AddEvent = () => {
           endTime: 15,
           status: "pending",
         });
+        setFileName("")
       })
       .catch((err) => {
         console.log(err);
@@ -194,6 +216,7 @@ const AddEvent = () => {
                 </div>
               </form>
             </div>
+
             <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
               <textarea
                 name="Description"
@@ -278,7 +301,7 @@ const AddEvent = () => {
           </button>
         </div>
       </div>
-      <Footer/>
+      <Footer />
     </>
   );
 };
