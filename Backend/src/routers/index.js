@@ -6,7 +6,6 @@ const bcrypt = require("bcryptjs");
 const saltRounds = 10;
 
 router.post("/createticket", async (req, res) => {
-
   try {
     const {
       name,
@@ -23,6 +22,23 @@ router.post("/createticket", async (req, res) => {
     if (!name || !email || !mobileno || !eventdescription || !date || !clubname || !startTime || !endTime) {
       return res.status(400).json({ error: "Please fill up all fields"});
   }
+    // Check if slot is booked or not
+    let flag = "notbooked";
+    const docs = await User.Ticket.find({ date: date });
+    docs.forEach(function (doc) {
+      if((doc.startTime >= startTime && doc.startTime <= endTime && doc.endTime >= endTime) ||
+         (doc.startTime <= startTime && doc.endTime >= startTime && doc.endTime <= endTime) || 
+         (doc.startTime >= startTime &&  doc.endTime <= endTime) || 
+         (doc.startTime <= startTime &&  doc.endTime >= endTime)){
+           console.log("Time slot is already booked");
+           flag = "booked";
+      }
+    });
+    console.log(flag);
+    if (flag === "booked") {
+      return res.status(400).json({ error: "Time slot is already booked" });
+    }
+
     const ticket = new User.Ticket({
       name,
       email,

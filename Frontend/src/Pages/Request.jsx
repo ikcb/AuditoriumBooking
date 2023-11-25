@@ -115,10 +115,11 @@ const AddEvent = () => {
           endTime: 15,
           status: "pending",
         });
-        setFileName("")
+        setFileName("");
       })
       .catch((err) => {
-        console.log(err);
+        toast.error(err.response.data.error);
+        console.log(err.response.data.error);
       });
   };
 
