@@ -42,26 +42,31 @@ const AddEvent = () => {
     eventdescription: "",
     date: "",
     clubname: "",
-    approve: "",
-    file: "",
+    approve:"",
+    file:null,
     startTime: 0,
     endTime: 15,
     status: "pending",
   });
-  const [fileName, setFileName] = useState("");
+  const [fileName,setFileName] = useState("");
   const [pdfData, setPdfData] = useState("");
 
-  function pdfToBinary(fileInput) {
-    if (fileInput.files.length > 0) {
-      const pdfFile = fileInput.files[0];
+  function pdfToBinary(e) {
+    const file = e.target.files[0];
+
+    if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        const binaryData = reader.result;
-        setPdfData(binaryData);
+      reader.onloadend = () => {
+        const base64String = reader.result;
+        setPdfData(base64String);
       };
-      reader.readAsBinaryString(pdfFile);
+      reader.readAsDataURL(file);
+    }else{
+      return null;
     }
   }
+  
+  
   const handleSave = () => {
     if (
       form.name === "" ||
@@ -71,7 +76,7 @@ const AddEvent = () => {
       form.date === "" ||
       form.clubname === "" ||
       form.approve === "" ||
-      form.file === ""
+      form.file === null
     ) {
       toast.error("Form can't be empty!");
       return;
@@ -83,13 +88,15 @@ const AddEvent = () => {
       toast.error("Booking cannot be made on past date!");
       return;
     }
+    
     const req = {
-      ...form,
+     ...form,
+     file:pdfData,
       startTime: convertMinutesToTime(form.startTime),
       endTime: convertMinutesToTime(form.endTime),
     };
     console.log(req);
-    axios
+    axios.post
       .post(`${import.meta.env.VITE_BASE_URL}/createticket`, req)
       .then((res) => {
         console.log(res);
@@ -102,8 +109,8 @@ const AddEvent = () => {
           eventdescription: "",
           date: "",
           clubname: "",
-          approve: "",
-          file: null,
+          approve:"",
+          file:null,
           startTime: 0,
           endTime: 15,
           status: "pending",
@@ -111,7 +118,8 @@ const AddEvent = () => {
         setFileName("");
       })
       .catch((err) => {
-        console.log(err);
+        toast.error(err.response.data.error);
+        console.log(err.response.data.error);
       });
   };
 
@@ -208,12 +216,10 @@ const AddEvent = () => {
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="file"
                     required
-                    value={fileName}
+                    value={form.file}
                     onChange={(e) => {
-                      setFileName(e.target.value);
-                      pdfToBinary(e.target);
-                      setForm({ ...form, file: pdfData });
-                      console.log(pdfData);
+                      pdfToBinary(e);
+                      setForm({ ...form, file: e.target.value });
                     }}
                   />
                 </div>

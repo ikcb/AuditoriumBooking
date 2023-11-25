@@ -3,6 +3,7 @@ const router = new express.Router();
 const User = require("../models");
 const auth = require("../middleware/auth");
 const bcrypt = require("bcryptjs");
+const { log } = require("console");
 const saltRounds = 10;
 
 router.post("/createticket", async (req, res) => {
@@ -31,6 +32,23 @@ router.post("/createticket", async (req, res) => {
     ) {
       return res.status(400).json({ error: "Please fill up all fields" });
     }
+    // Check if slot is booked or not
+    let flag = "notbooked";
+    const docs = await User.Ticket.find({ date: date });
+    docs.forEach(function (doc) {
+      if((doc.startTime >= startTime && doc.startTime <= endTime && doc.endTime >= endTime) ||
+         (doc.startTime <= startTime && doc.endTime >= startTime && doc.endTime <= endTime) || 
+         (doc.startTime >= startTime &&  doc.endTime <= endTime) || 
+         (doc.startTime <= startTime &&  doc.endTime >= endTime)){
+           console.log("Time slot is already booked");
+           flag = "booked";
+      }
+    });
+    console.log(flag);
+    if (flag === "booked") {
+      return res.status(400).json({ error: "Time slot is already booked" });
+    }
+
     const ticket = new User.Ticket({
       name,
       email,
@@ -58,7 +76,7 @@ router.put("/updateticket/:ticketId", auth, async (req, res) => {
   try {
     const { ticketId } = req.params;
     const { status } = req.body;
-    const allowedStatuses = ["booked", "declined"];
+    const allowedStatuses = ["booked", "declined", "pending"];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
@@ -69,9 +87,9 @@ router.put("/updateticket/:ticketId", auth, async (req, res) => {
       await ticket.save();
       res.json(ticket);
     } else {
-      return res
-        .status(400)
-        .json({ error: "Ticket already booked or declined" });
+      ticket.status = status;
+      await ticket.save();
+      res.json("Ticket status updated");
     }
   } catch (err) {
     console.error(err);
