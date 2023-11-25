@@ -3,7 +3,6 @@ const router = new express.Router();
 const User = require("../models");
 const auth = require("../middleware/auth");
 const bcrypt = require("bcryptjs");
-const { log } = require("console");
 const saltRounds = 10;
 
 router.post("/createticket", async (req, res) => {
@@ -20,18 +19,9 @@ router.post("/createticket", async (req, res) => {
       startTime,
       endTime,
     } = req.body;
-    if (
-      !name ||
-      !email ||
-      !mobileno ||
-      !eventdescription ||
-      !date ||
-      !clubname ||
-      !startTime ||
-      !endTime
-    ) {
-      return res.status(400).json({ error: "Please fill up all fields" });
-    }
+    if (!name || !email || !mobileno || !eventdescription || !date || !clubname || !startTime || !endTime) {
+      return res.status(400).json({ error: "Please fill up all fields"});
+  }
     // Check if slot is booked or not
     let flag = "notbooked";
     const docs = await User.Ticket.find({ date: date });
@@ -72,7 +62,7 @@ router.post("/createticket", async (req, res) => {
 });
 
 // Route to update ticket status
-router.put("/updateticket/:ticketId", auth, async (req, res) => {
+router.put("/updateticket/:ticketId", auth,async (req, res) => {
   try {
     const { ticketId } = req.params;
     const { status } = req.body;

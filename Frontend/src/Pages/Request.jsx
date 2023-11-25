@@ -96,7 +96,7 @@ const AddEvent = () => {
       endTime: convertMinutesToTime(form.endTime),
     };
     console.log(req);
-    axios.post
+    axios
       .post(`${import.meta.env.VITE_BASE_URL}/createticket`, req)
       .then((res) => {
         console.log(res);
