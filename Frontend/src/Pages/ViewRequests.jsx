@@ -9,6 +9,8 @@ import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import Footer from "../Component/Footer";
 import statusimg from "../assets/img_group.svg";
+import { Bars } from "react-loader-spinner";
+
 export default function ViewRequests() {
   const [tickets, setTickets] = useState([]);
   useEffect(() => {
@@ -17,7 +19,11 @@ export default function ViewRequests() {
   const [updatestatusid, setUpdatestatusid] = useState("");
   const [activeButton, setActiveButton] = useState("pending");
   const [showupdatestatus, setShowupdatestatus] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
+  setTimeout(() => {
+    setIsLoading(false);
+  }, 3000);
   const fetchData = async () => {
     try {
       const response = await axios.get(
@@ -87,7 +93,8 @@ export default function ViewRequests() {
           token: authtoken,
         })
         .then((response) => {
-          toast.success("Status Updated Successfully!");
+          console.log(response);
+          toast.success(response.data);
           fetchData();
           setUpdatestatusid("");
         })
@@ -115,13 +122,11 @@ export default function ViewRequests() {
       );
       if (response) {
         if (status === "booked") {
-          toast.success("Booking Request Accepted successfully!");
-        }
-        if (status === "declined") {
-          toast.error("Booking Request Declined!");
-        }
-        if (status === "pending") {
-          toast.error("Booking Request Pending!");
+          toast.success(response.data);
+        } else if (status === "declined") {
+          toast.error(response.data);
+        } else if (status === "pending") {
+          toast.error(response.data);
         } else {
           toast.error("");
         }
@@ -301,50 +306,69 @@ export default function ViewRequests() {
           Declined
         </button>
       </div>
-      <div className="min-h-[80vh] mt-[20px]  mx-8 overflow-x-auto flex  justify-center items-start">
-        <table
-          {...getTableProps()}
-          className="w-[1500px] divide-y divide-gray-200 bg-white shadow-md"
+      {isLoading ? (
+        <div
+          style={{
+            width: "100px",
+            margin: "auto",
+          }}
         >
-          <thead>
-            {headerGroups.map((headerGroup) => (
-              <tr
-                {...headerGroup.getHeaderGroupProps()}
-                className="bg-gray-100"
-              >
-                {headerGroup.headers.map((column) => (
-                  <th
-                    {...column.getHeaderProps()}
-                    className="py-3 px-6 text-left font-semibold text-gray-700"
-                  >
-                    {column.render("Header")}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody {...getTableBodyProps()}>
-            {rows.map((row) => {
-              prepareRow(row);
-              return (
+          <Bars
+            height="90"
+            width="90"
+            color="#5c85f8"
+            ariaLabel="bars-loading"
+            wrapperStyle={{ marginTop: "200px", marginBottom: "350px" }}
+            wrapperClass=""
+            visible={true}
+          />
+        </div>
+      ) : (
+        <div className="min-h-[80vh] mt-[20px]  mx-8 overflow-x-auto flex  justify-center items-start">
+          <table
+            {...getTableProps()}
+            className="w-[1500px] divide-y divide-gray-200 bg-white shadow-md"
+          >
+            <thead>
+              {headerGroups.map((headerGroup) => (
                 <tr
-                  {...row.getRowProps()}
-                  className="transition-colors hover:bg-gray-50"
+                  {...headerGroup.getHeaderGroupProps()}
+                  className="bg-gray-100"
                 >
-                  {row.cells.map((cell) => (
-                    <td
-                      {...cell.getCellProps()}
-                      className="py-3 px-3 text-gray-700"
+                  {headerGroup.headers.map((column) => (
+                    <th
+                      {...column.getHeaderProps()}
+                      className="py-3 px-6 text-left font-semibold text-gray-700"
                     >
-                      {cell.render("Cell")}
-                    </td>
+                      {column.render("Header")}
+                    </th>
                   ))}
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </thead>
+            <tbody {...getTableBodyProps()}>
+              {rows.map((row) => {
+                prepareRow(row);
+                return (
+                  <tr
+                    {...row.getRowProps()}
+                    className="transition-colors hover:bg-gray-50"
+                  >
+                    {row.cells.map((cell) => (
+                      <td
+                        {...cell.getCellProps()}
+                        className="py-3 px-3 text-gray-700"
+                      >
+                        {cell.render("Cell")}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
       <div className="">
         <Footer />
       </div>

@@ -20,8 +20,16 @@ router.post("/createticket", async (req, res) => {
       endTime,
     } = req.body;
     if (!name || !email || !mobileno || !eventdescription || !date || !clubname || !startTime || !endTime) {
-      return res.status(400).json({ error: "Please fill up all fields"});
+      return res.status(400).json({ error: "Please fill up all the fields"});
   }
+    // Check booking date
+    const currDate = new Date().getTime();
+    const bookDate = new Date(date).getTime();
+    console.log(date);
+    if (bookDate < currDate) { 
+      console.log(bookDate);
+      return res.status(400).json({ error: "Booking cannot be made on past date!"});
+    }
     // Check if slot is booked or not
     let flag = "notbooked";
     const docs = await User.Ticket.find({ date: date });
@@ -75,12 +83,21 @@ router.put("/updateticket/:ticketId", auth,async (req, res) => {
     if (ticket.status === "pending") {
       ticket.status = status;
       await ticket.save();
-      res.json(ticket);
+      // res.json(ticket);
     } else {
       ticket.status = status;
       await ticket.save();
-      res.json("Ticket status updated");
+      res.json("Status Updated Successfully!");
     }
+    if (status === "booked") {
+      return res.json("Booking Request Accepted successfully!");
+    }
+    if (status === "declined") {
+      return res.json("Booking Request Declined!");
+    }
+    if (status === "pending") {
+      return res.json("Booking Request Pending!");
+    } 
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update ticket status" });
