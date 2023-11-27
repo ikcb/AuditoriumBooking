@@ -11,6 +11,7 @@ import Footer from "../Component/Footer";
 import Spinner from "../Component/Spinner";
 import Popup from "../Component/Popup";
 import statusimg from "../assets/img_group.svg";
+import { Bars } from "react-loader-spinner";
 
 export default function ViewRequests() {
   const [tickets, setTickets] = useState([]);
@@ -31,7 +32,11 @@ export default function ViewRequests() {
   const closePopup = () => {
     setIsPopupOpen(false);
   };
+  const [isLoading, setIsLoading] = useState(true);
 
+  setTimeout(() => {
+    setIsLoading(false);
+  }, 3000);
   const fetchData = async () => {
     setloading(true);
     setActiveButton("pending");
@@ -109,6 +114,9 @@ export default function ViewRequests() {
             handleBookedClick();
           else
             handleDeclinedClick();
+          console.log(response);
+          toast.success(response.data);
+          fetchData();
           setUpdatestatusid("");
         })
         .catch((error) => {
@@ -134,17 +142,9 @@ export default function ViewRequests() {
         { status: status, token: authtoken }
       );
       if (response) {
-        if (status === "booked") {
-          toast.success("Booking Request Accepted successfully!");
-        }
-        else if (status === "declined") {
-          toast.error("Booking Request Declined!");
-        }
-        else if (status === "pending") {
-          toast.error("Booking Request Pending!");
-        } else {
-          toast.error("");
-        }
+      
+          toast.error(response.data);
+      
       }
       await fetchData();
     } catch (error) {
@@ -341,30 +341,46 @@ export default function ViewRequests() {
           Declined
         </button>
       </div>
-      <div className="min-h-[80vh] mt-[20px]  mx-8 overflow-x-auto flex  justify-center items-start">
-        <Spinner show={loading} />
-        <table
-          {...getTableProps()}
-          className="w-[1500px] divide-y divide-gray-200 bg-white shadow-md"
+      {isLoading ? (
+        <div
+          style={{
+            width: "100px",
+            margin: "auto",
+          }}
         >
-          <thead>
-            {headerGroups.map((headerGroup) => (
-              <tr
-                {...headerGroup.getHeaderGroupProps()}
-                className="bg-gray-100"
-              >
-                {headerGroup.headers.map((column) => (
-                  <th
-                    {...column.getHeaderProps()}
-                    className="py-3 px-6 text-left font-semibold text-gray-700"
-                  >
-                    {column.render("Header")}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          {!loading &&
+          <Bars
+            height="90"
+            width="90"
+            color="#5c85f8"
+            ariaLabel="bars-loading"
+            wrapperStyle={{ marginTop: "200px", marginBottom: "350px" }}
+            wrapperClass=""
+            visible={true}
+          />
+        </div>
+      ) : (
+        <div className="min-h-[80vh] mt-[20px]  mx-8 overflow-x-auto flex  justify-center items-start">
+          <table
+            {...getTableProps()}
+            className="w-[1500px] divide-y divide-gray-200 bg-white shadow-md"
+          >
+            <thead>
+              {headerGroups.map((headerGroup) => (
+                <tr
+                  {...headerGroup.getHeaderGroupProps()}
+                  className="bg-gray-100"
+                >
+                  {headerGroup.headers.map((column) => (
+                    <th
+                      {...column.getHeaderProps()}
+                      className="py-3 px-6 text-left font-semibold text-gray-700"
+                    >
+                      {column.render("Header")}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
             <tbody {...getTableBodyProps()}>
               {rows.map((row) => {
                 prepareRow(row);
@@ -376,7 +392,7 @@ export default function ViewRequests() {
                     {row.cells.map((cell) => (
                       <td
                         {...cell.getCellProps()}
-                        className="py-3 px-3 text-gray-700 "
+                        className="py-3 px-3 text-gray-700"
                       >
                         {cell.render("Cell")}
                       </td>
@@ -384,9 +400,10 @@ export default function ViewRequests() {
                   </tr>
                 );
               })}
-            </tbody>}
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      )}
       <div className="">
         <Footer />
       </div>

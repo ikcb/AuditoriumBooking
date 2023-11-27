@@ -27,7 +27,7 @@ function Userlogin() {
         navigate("/viewrequest");
       })
       .catch((err) => {
-        toast.error("Invalid Credentials");
+        toast.error(err.response.data.error);
         console.log(err);
       });
   };

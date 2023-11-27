@@ -68,27 +68,7 @@ const AddEvent = () => {
   
   
   const handleSave = () => {
-    if (
-      form.name === "" ||
-      form.email === "" ||
-      form.mobileno === "" ||
-      form.eventdescription === "" ||
-      form.date === "" ||
-      form.clubname === "" ||
-      form.approve === "" ||
-      form.file === null
-    ) {
-      toast.error("Form can't be empty!");
-      return;
-    }
-    // Check booking date
-    const currDate = new Date().getTime();
-    const bookDate = new Date(form.date).getTime();
-    if (bookDate < currDate) {
-      toast.error("Booking cannot be made on past date!");
-      return;
-    }
-    
+  
     const req = {
      ...form,
      file:pdfData,
@@ -115,11 +95,11 @@ const AddEvent = () => {
           endTime: 15,
           status: "pending",
         });
-        setFileName("")
+        setFileName("");
       })
       .catch((err) => {
-        console.log(err);
-        toast.error("Booking Request failed!");
+        toast.error(err.response.data.error);
+        console.log(err.response.data.error);
       });
   };
 

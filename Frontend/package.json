@@ -32,6 +32,7 @@
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
     "react-icons": "^4.11.0",
+    "react-loader-spinner": "^5.4.5",
     "react-router-dom": "^6.3.0",
     "react-table": "^7.8.0",
     "react-time-picker": "^6.3.0",

@@ -6,7 +6,6 @@ const bcrypt = require("bcryptjs");
 const saltRounds = 10;
 
 router.post("/createticket", async (req, res) => {
-
   try {
     const {
       name,
@@ -21,8 +20,33 @@ router.post("/createticket", async (req, res) => {
       endTime,
     } = req.body;
     if (!name || !email || !mobileno || !eventdescription || !date || !clubname || !startTime || !endTime) {
-      return res.status(400).json({ error: "Please fill up all fields"});
+      return res.status(400).json({ error: "Please fill up all the fields"});
   }
+    // Check booking date
+    const currDate = new Date().getTime();
+    const bookDate = new Date(date).getTime();
+    console.log(date);
+    if (bookDate < currDate) { 
+      console.log(bookDate);
+      return res.status(400).json({ error: "Booking cannot be made on past date!"});
+    }
+    // Check if slot is booked or not
+    let flag = "notbooked";
+    const docs = await User.Ticket.find({ date: date });
+    docs.forEach(function (doc) {
+      if((doc.startTime >= startTime && doc.startTime <= endTime && doc.endTime >= endTime) ||
+         (doc.startTime <= startTime && doc.endTime >= startTime && doc.endTime <= endTime) || 
+         (doc.startTime >= startTime &&  doc.endTime <= endTime) || 
+         (doc.startTime <= startTime &&  doc.endTime >= endTime)){
+           console.log("Time slot is already booked");
+           flag = "booked";
+      }
+    });
+    console.log(flag);
+    if (flag === "booked") {
+      return res.status(400).json({ error: "Time slot is already booked" });
+    }
+
     const ticket = new User.Ticket({
       name,
       email,
@@ -59,12 +83,21 @@ router.put("/updateticket/:ticketId", auth,async (req, res) => {
     if (ticket.status === "pending") {
       ticket.status = status;
       await ticket.save();
-      res.json(ticket);
+      // res.json(ticket);
     } else {
       ticket.status = status;
       await ticket.save();
-      res.json("Ticket status updated");
+      res.json("Status Updated Successfully!");
     }
+    if (status === "booked") {
+      return res.json("Booking Request Accepted successfully!");
+    }
+    if (status === "declined") {
+      return res.json("Booking Request Declined!");
+    }
+    if (status === "pending") {
+      return res.json("Booking Request Pending!");
+    } 
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to update ticket status" });
