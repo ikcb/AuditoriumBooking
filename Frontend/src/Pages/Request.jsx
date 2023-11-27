@@ -119,6 +119,7 @@ const AddEvent = () => {
       })
       .catch((err) => {
         console.log(err);
+        toast.error("Booking Request failed!");
       });
   };
 

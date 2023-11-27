@@ -14,12 +14,13 @@ const getDaystring = (dayNumber) => {
 function renderEventContent(eventInfo) {
   const arr = eventInfo.event.title.split("-");
   console.log(arr);
+  
   return (
     <div className="overflow-hidden">
     
-      <div className="overflow-x-auto scrollbar-hide bg-slate-600">
-        <div className="w-[100px] ">{arr[0]}</div>
-        <div className="w-[100px]  ">
+      <div className="overflow-x-auto scrollbar-hide bg-slate-600 group">
+        <div className="w-[100px] group-hover:w-full bg-slate-600 transition-width">{arr[0]}</div>
+        <div className="w-[100px] hidden group-hover:block">
           {arr[2]}-{arr[3]}
         </div>
       </div>
@@ -32,6 +33,8 @@ const Calender = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const [isHovering, setIsHovering] = useState(false);
 
   const fetchData = async () => {
     axios
