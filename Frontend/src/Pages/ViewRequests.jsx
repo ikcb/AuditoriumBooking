@@ -8,6 +8,8 @@ import { useTable } from "react-table";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import Footer from "../Component/Footer";
+import Spinner from "../Component/Spinner";
+import Popup from "../Component/Popup";
 import statusimg from "../assets/img_group.svg";
 import { Bars } from "react-loader-spinner";
 
@@ -18,13 +20,26 @@ export default function ViewRequests() {
   }, []);
   const [updatestatusid, setUpdatestatusid] = useState("");
   const [activeButton, setActiveButton] = useState("pending");
+  const [loading, setloading] = useState(false);
   const [showupdatestatus, setShowupdatestatus] = useState(false);
+  const [selectedRowData, setSelectedRowData] = useState(null);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+  const openPopup = () => {
+    setIsPopupOpen(true);
+  };
+
+  const closePopup = () => {
+    setIsPopupOpen(false);
+  };
   const [isLoading, setIsLoading] = useState(true);
 
   setTimeout(() => {
     setIsLoading(false);
   }, 3000);
   const fetchData = async () => {
+    setloading(true);
+    setActiveButton("pending");
     try {
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/ticket?status=pending`
@@ -33,50 +48,48 @@ export default function ViewRequests() {
     } catch (error) {
       console.error("Error fetching data:", error);
     }
+    setloading(false);
   };
-  const handleBookedClick = () => {
+  const handleBookedClick = async () => {
+    setloading(true);
     setActiveButton("booked");
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/ticket?status=booked`
-        );
-        setTickets(response.data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    fetchData();
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/ticket?status=booked`
+      );
+      setTickets(response.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+    setloading(false);
   };
 
-  const handlePendingClick = () => {
+  const handlePendingClick = async () => {
+    setloading(true);
     setActiveButton("pending");
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/ticket?status=pending`
-        );
-        setTickets(response.data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    fetchData();
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/ticket?status=pending`
+      );
+      setTickets(response.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+    setloading(false);
   };
 
-  const handleDeclinedClick = () => {
+  const handleDeclinedClick = async () => {
+    setloading(true);
     setActiveButton("declined");
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/ticket?status=declined`
-        );
-        setTickets(response.data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    fetchData();
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/ticket?status=declined`
+      );
+      setTickets(response.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+    setloading(false);
   };
 
   const UpdateStatus = async (id, status) => {
@@ -93,6 +106,14 @@ export default function ViewRequests() {
           token: authtoken,
         })
         .then((response) => {
+          toast.success("Status Updated Successfully!");
+
+          if (activeButton === "pending")
+            handlePendingClick();
+          else if (activeButton === "booked")
+            handleBookedClick();
+          else
+            handleDeclinedClick();
           console.log(response);
           toast.success(response.data);
           fetchData();
@@ -121,15 +142,9 @@ export default function ViewRequests() {
         { status: status, token: authtoken }
       );
       if (response) {
-        if (status === "booked") {
-          toast.success(response.data);
-        } else if (status === "declined") {
+      
           toast.error(response.data);
-        } else if (status === "pending") {
-          toast.error(response.data);
-        } else {
-          toast.error("");
-        }
+      
       }
       await fetchData();
     } catch (error) {
@@ -157,15 +172,11 @@ export default function ViewRequests() {
         Header: "Club Name",
         accessor: "clubname",
       },
-      {
-        Header: "Date",
-        accessor: "date",
-        Cell: ({ cell }) => reverseDateFormat(cell.value.slice(0, 10)),
-      },
-      {
-        Header: "Email",
-        accessor: "email",
-      },
+
+      // {
+      //   Header: "Email",
+      //   accessor: "email",
+      // },
       {
         Header: "Start Time",
         accessor: "startTime",
@@ -175,16 +186,36 @@ export default function ViewRequests() {
         accessor: "endTime",
       },
       {
-        Header: "Event Description",
-        accessor: "eventdescription",
+        Header: "Date",
+        accessor: "date",
+        Cell: ({ cell }) => reverseDateFormat(cell.value.slice(0, 10)),
       },
-      {
-        Header: "Mobile No",
-        accessor: "mobileno",
-      },
+      // {
+      //   Header: "Event Description",
+      //   accessor: "eventdescription",
+      // },
+      // {
+      //   Header: "Mobile No",
+      //   accessor: "mobileno",
+      // },
       {
         Header: "Name",
         accessor: "name",
+      },
+      {
+        Header: " Details",
+        accessor: "details",
+        Cell: ({ row }) => (
+          <div
+            className="flex  underline cursor-pointer justify-center bg-blue-500 hover:bg-blue-700 text-white  py-1 px-1 rounded"
+            onClick={() => {
+              setSelectedRowData(row.original);
+              openPopup();
+            }}
+          >
+            See more
+          </div>
+        ),
       },
       {
         Header: "Status",
@@ -228,30 +259,35 @@ export default function ViewRequests() {
                         <div className="pt-[5px] pb-[10px] flex items-center w-[144px] justify-center text-[12px] font-bold ">
                           UPDATE STATUS
                         </div>
-                        <div
-                          onClick={() =>
-                            UpdateStatus(row.original._id, "booked")
-                          }
-                          className="h-auto flex items-center px-[15px] py-[7px] bg-[#FFF]"
-                        >
-                          Booked
-                        </div>
-                        <div
-                          onClick={() =>
-                            UpdateStatus(row.original._id, "pending")
-                          }
-                          className="h-auto flex items-center px-[15px] py-[7px] bg-[#FFF]"
-                        >
-                          Pending
-                        </div>
-                        <div
-                          onClick={() =>
-                            UpdateStatus(row.original._id, "declined")
-                          }
-                          className="h-auto flex items-center px-[15px] py-[7px] bg-[#FFF]"
-                        >
-                          Decline
-                        </div>
+                        {activeButton != "booked" &&
+                          <div
+                            onClick={() =>
+                              UpdateStatus(row.original._id, "booked")
+                            }
+                            className="h-auto flex items-center px-[15px] py-[7px] bg-[#FFF]"
+                          >
+                            Booked
+                          </div>
+                        }
+                        {activeButton != "pending" &&
+                          <div
+                            onClick={() =>
+                              UpdateStatus(row.original._id, "pending")
+                            }
+                            className="h-auto flex items-center px-[15px] py-[7px] bg-[#FFF]"
+                          >
+                            Pending
+                          </div>}
+                        {activeButton != "declined" &&
+                          <div
+                            onClick={() =>
+                              UpdateStatus(row.original._id, "declined")
+                            }
+                            className="h-auto flex items-center px-[15px] py-[7px] bg-[#FFF]"
+                          >
+                            Decline
+                          </div>
+                        }
                       </div>
                     </div>
                   </div>
@@ -261,6 +297,7 @@ export default function ViewRequests() {
           </div>
         ),
       },
+      
     ],
     [updatestatusid]
   );
@@ -274,34 +311,32 @@ export default function ViewRequests() {
   return (
     <>
       <div>
+      {isPopupOpen && <Popup data={selectedRowData} onClose={closePopup} />}
         <Toaster />
       </div>
-      <div className="mx-8 flex gap-[10px] ">
+      <div className="mx-8 flex gap-[10px]">
         <button
           onClick={handleBookedClick}
-          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${
-            activeButton == "booked" ? "bg-slate-800 text-white" : "bg-gray-200"
-          }`}
+          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton == "booked" ? "bg-slate-800 text-white" : "bg-gray-200"
+            }`}
         >
           Booked
         </button>
         <button
           onClick={handlePendingClick}
-          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${
-            activeButton == "pending"
-              ? "bg-slate-800 text-white"
-              : "bg-gray-200"
-          }`}
+          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton == "pending"
+            ? "bg-slate-800 text-white"
+            : "bg-gray-200"
+            }`}
         >
           Pending
         </button>
         <button
           onClick={handleDeclinedClick}
-          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${
-            activeButton == "declined"
-              ? "bg-slate-800 text-white"
-              : "bg-gray-200"
-          }`}
+          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton == "declined"
+            ? "bg-slate-800 text-white"
+            : "bg-gray-200"
+            }`}
         >
           Declined
         </button>
