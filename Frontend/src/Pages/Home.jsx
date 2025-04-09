@@ -1,5 +1,3 @@
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Calendar from "react-calendar";
@@ -11,83 +9,158 @@ const getDaystring = (dayNumber) => {
   return days[dayNumber];
 };
 
-function renderEventContent(eventInfo) {
-  const arr = eventInfo.event.title.split("-");
-  console.log(arr);
-  
-  return (
-    <div className="overflow-hidden">
-    
-      <div className="overflow-x-auto scrollbar-hide bg-slate-600 group">
-        <div className="w-[100px] group-hover:w-full bg-slate-600 transition-width">{arr[0]}</div>
-        <div className="w-[100px] hidden group-hover:block">
-          {arr[2]}-{arr[3]}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const Calender = () => {
-  const [Event, setEvent] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [filteredEvents, setFilteredEvents] = useState([]);
+  const [datesWithEvents, setDatesWithEvents] = useState([]);
+  
   useEffect(() => {
     fetchData();
   }, []);
-
-  const [isHovering, setIsHovering] = useState(false);
+  
+  // Extract unique dates with events
+  useEffect(() => {
+    const uniqueDates = [...new Set(
+      events.map(event => new Date(event.date).toISOString().split('T')[0])
+    )];
+    
+    setDatesWithEvents(uniqueDates);
+  }, [events]);
+  
+  useEffect(() => {
+    // Format the selected date
+    const formattedDate = selectedDate.toISOString().split('T')[0];
+    
+    // Filter events for the selected date
+    const eventsOnDate = events.filter(event => {
+      const eventDate = new Date(event.date).toISOString().split('T')[0];
+      return eventDate === formattedDate;
+    });
+    
+    // Sort events by start time
+    const sortedEvents = eventsOnDate.sort((a, b) => {
+      const timeA = new Date(`1970/01/01 ${a.startTime}`);
+      const timeB = new Date(`1970/01/01 ${b.startTime}`);
+      return timeA - timeB;
+    });
+    
+    setFilteredEvents(sortedEvents);
+  }, [selectedDate, events]);
 
   const fetchData = async () => {
-    axios
-      .get(`${import.meta.env.VITE_BASE_URL}/ticket?status=booked`)
-      .then((res) => {
-        console.log(res.data);
-        const data = res.data.map((item) => {
-          return {
-            title: `${item.clubname}-Slot-${item.startTime}-${item.endTime}`,
-            start: item.date.substring(0, 10),
-            end: item.date.substring(0, 10),
-          };
-        });
-        setEvent(data);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/ticket?status=booked`);
+      const data = response.data.map((item) => ({
+        ...item,
+        date: new Date(item.date)
+      }));
+      setEvents(data);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    }
+  };
+
+  const handleDateChange = (date) => {
+    setSelectedDate(date);
+  };
+
+  // Custom tile class to add effects
+  const tileClassName = ({ date, view }) => {
+    // Only add class on month view
+    if (view === 'month') {
+      const dateString = date.toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if this date has events
+      const hasEvents = datesWithEvents.includes(dateString);
+      
+      // Check if this is today's date
+      const isToday = dateString === today;
+      
+      // Combine classes
+      const classes = [];
+      
+      if (hasEvents) classes.push('event-date');
+      if (isToday) classes.push('today-date');
+      
+      return classes.length > 0 ? classes.join(' ') : null;
+    }
+    return null;
   };
 
   return (
     <>
-      <div className="">
-        <div className="flex flex-col">
-          <div className="flex flex-row w-full justify-between px-[20px]">
-            <div className="md:flex flex-col  h-[100vh] items-center hidden">
-              <div className="bg-slate-300 mt-[80px] w-[260px] h-[330px] shadow-xl px-4 py-5 m-10 rounded-lg translate-x-[-10px] translate-y-[18px]">
-                <Calendar
-                  formatShortWeekday={(locale, date) => {
-                    return (
-                      getDaystring(date.getDay())
-                        .substring(0, 1)
-                        .toUpperCase() +
-                      getDaystring(date.getDay()).substring(1, 2).toLowerCase()
-                    );
-                  }}
-                  prev2Label={""}
-                  next2Label={""}
-                  showNeighboringMonth={false}
-                />
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex flex-col md:flex-row p-4 max-w-7xl mx-auto">
+          {/* Left side - Mini Calendar */}
+          <div className="md:w-1/4 mb-6 md:mb-0">
+            <div className="bg-white rounded-lg shadow-md p-4 md:sticky md:top-4">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800">Select Date</h2>
+              <Calendar
+                onChange={handleDateChange}
+                value={selectedDate}
+                formatShortWeekday={(locale, date) => {
+                  const dayString = getDaystring(date.getDay());
+                  return (
+                    dayString.substring(0, 1).toUpperCase() +
+                    dayString.substring(1, 2).toLowerCase()
+                  );
+                }}
+                tileClassName={tileClassName}
+                prev2Label={""}
+                next2Label={""}
+                showNeighboringMonth={false}
+                className="border-0"
+              />
+              <div className="mt-4 text-center">
+                <p className="text-gray-600">
+                  Selected: <span className="font-medium">{selectedDate.toDateString()}</span>
+                </p>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <div className="w-[1200px] md:w-[70vw] h-auto mt-4 ">
-                <FullCalendar
-                  plugins={[dayGridPlugin]}
-                  initialView="dayGridMonth"
-                  height={"100vh"}
-                  events={Event}
-                  dayMinWidth={"120px"}
-                  eventContent={renderEventContent}
-                  allDaySlot={false}
-                />
+          </div>
+          
+          {/* Right side - Event List */}
+          <div className="md:w-3/4 md:pl-6">
+            <div className="bg-white rounded-lg shadow-md p-4">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                Events on {selectedDate.toDateString()}
+              </h2>
+              
+              <div className="space-y-4">
+                {filteredEvents.length > 0 ? (
+                  filteredEvents.map((event, index) => (
+                    <div 
+                      key={index} 
+                      className="bg-slate-100 border rounded-lg p-4 hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div className="mb-2 sm:mb-0">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            {event.clubname}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {event.eventdescription}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-sm font-medium text-gray-700">
+                            {event.startTime} - {event.endTime}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            Contact: {event.mobileno}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 text-lg">No Events</p>
+                    <p className="text-gray-400 text-sm">There are no bookings for this date.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -97,4 +170,5 @@ const Calender = () => {
     </>
   );
 };
+
 export default Calender;

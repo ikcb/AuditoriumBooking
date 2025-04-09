@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../assets/calender.css";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -42,18 +42,80 @@ const AddEvent = () => {
     eventdescription: "",
     date: "",
     clubname: "",
-    approve:"",
-    file:null,
+    requestType: "",
+    file: null,
     startTime: 0,
     endTime: 15,
     status: "pending",
   });
-  const [fileName,setFileName] = useState("");
+  const [bookedSlots, setBookedSlots] = useState([]);
   const [pdfData, setPdfData] = useState("");
+
+  // Fetch booked slots when date changes
+  useEffect(() => {
+    if (form.date) {
+      fetchBookedSlots(form.date);
+    }
+  }, [form.date]);
+
+  // Fetch booked slots for a specific date
+  const fetchBookedSlots = async (date) => {
+    try {
+      const response = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/ticket?date=${date}&status=booked`
+      );
+
+      // Convert booked slots to minutes for easy comparison
+      const bookedSlotsInMinutes = response.data.map((slot) => ({
+        start: convertTimeToMinutes(slot.startTime),
+        end: convertTimeToMinutes(slot.endTime)
+      }));
+
+      setBookedSlots(bookedSlotsInMinutes);
+    } catch (err) {
+      console.error("Error fetching booked slots:", err);
+    }
+  };
+
+  // Convert time string to minutes
+  const convertTimeToMinutes = (timeString) => {
+    const [time, period] = timeString.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+
+    if (period === 'PM' && hours !== 12) {
+      hours += 12;
+    }
+    if (period === 'AM' && hours === 12) {
+      hours = 0;
+    }
+
+    return hours * 60 + minutes;
+  };
+
+  // Check if a time slot is available
+  const isTimeSlotAvailable = (startMinutes, endMinutes) => {
+    return !bookedSlots.some((slot) =>
+      (startMinutes < slot.end && endMinutes > slot.start)
+    );
+  };
+
+  // Filter available start times
+  const getAvailableStartTimes = () => {
+    return option.filter((startMinutes) =>
+      isTimeSlotAvailable(startMinutes, startMinutes + 15)
+    );
+  };
+
+  // Filter available end times based on start time
+  const getAvailableEndTimes = (startMinutes) => {
+    return option.filter((endMinutes) => {
+      if (startMinutes >= endMinutes) return false;
+      return isTimeSlotAvailable(startMinutes, endMinutes);
+    });
+  };
 
   function pdfToBinary(e) {
     const file = e.target.files[0];
-
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -61,27 +123,86 @@ const AddEvent = () => {
         setPdfData(base64String);
       };
       reader.readAsDataURL(file);
-    }else{
+    } else {
       return null;
     }
   }
-  
-  
+
   const handleSave = () => {
-  
+    // Validation
+    const validationErrors = [];
+
+    // Name validation
+    if (!form.name.trim()) validationErrors.push("Name is required");
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!form.email.trim()) {
+      validationErrors.push("Email is required");
+    } else if (!emailRegex.test(form.email)) {
+      validationErrors.push("Invalid email format");
+    }
+
+    // Mobile number validation
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!form.mobileno.trim()) {
+      validationErrors.push("Mobile number is required");
+    } else if (!mobileRegex.test(form.mobileno)) {
+      validationErrors.push("Mobile number must be 10 digits");
+    }
+
+    // Date validation
+    if (!form.date) validationErrors.push("Date is required");
+
+    // Event description validation
+    if (!form.eventdescription.trim()) validationErrors.push("Event description is required");
+
+    // Request type validation
+    if (!form.requestType) validationErrors.push("Request type is required");
+
+    // Club name validation (conditional)
+    if (form.requestType === 'club' && form.clubname.trim() === '') {
+      validationErrors.push("Club name is required for club booking");
+    }
+
+    // File validation
+    if (!pdfData) validationErrors.push("PDF file is required");
+
+    // Time slot validation
+    if (!isTimeSlotAvailable(form.startTime, form.endTime)) {
+      validationErrors.push("Selected time slot is already booked");
+    }
+
+    // Display errors if any
+    if (validationErrors.length > 0) {
+      validationErrors.forEach(error => toast.error(error));
+      return;
+    }
+
+    // Prepare request payload
     const req = {
-     ...form,
-     file:pdfData,
+      name: form.name,
+      email: form.email.toLowerCase(),
+      mobileno: form.mobileno,
+      eventdescription: form.eventdescription.toLowerCase(),
+      date: new Date(form.date),
+      clubname: form.requestType === 'club' ? form.clubname : null, // Only include if club type
+      requestType: form.requestType,
+      file: pdfData,
       startTime: convertMinutesToTime(form.startTime),
       endTime: convertMinutesToTime(form.endTime),
+      status: "pending"
     };
-    console.log(req);
+
+    // Log payload for debugging
+    console.log("Request Payload:", JSON.stringify(req, null, 2));
+
     axios
       .post(`${import.meta.env.VITE_BASE_URL}/createticket`, req)
       .then((res) => {
-        console.log(res);
         toast.success("Booking Request created successfully!");
 
+        // Reset form
         setForm({
           name: "",
           email: "",
@@ -89,17 +210,29 @@ const AddEvent = () => {
           eventdescription: "",
           date: "",
           clubname: "",
-          approve:"",
-          file:null,
+          requestType: "",
+          file: null,
           startTime: 0,
           endTime: 15,
           status: "pending",
         });
-        setFileName("");
+        setPdfData("");
       })
       .catch((err) => {
-        toast.error(err.response.data.error);
-        console.log(err.response.data.error);
+        // Detailed error logging
+        console.error("Error Details:", {
+          status: err.response?.status,
+          data: err.response?.data,
+          headers: err.response?.headers,
+          message: err.message
+        });
+
+        // More informative error message
+        const errorMessage = err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Booking Request failed!";
+
+        toast.error(errorMessage);
       });
   };
 
@@ -118,7 +251,7 @@ const AddEvent = () => {
             <div className="flex flex-col">
               <form action="" method="post">
                 <div className="flex flex-row  justify-between my-3 gap-7">
-                  <label>Name</label>
+                  <label className="font-semibold">Name</label>
                   <input
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="text"
@@ -130,7 +263,7 @@ const AddEvent = () => {
                   />
                 </div>
                 <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
-                  <label>Email</label>
+                  <label className="font-semibold">Email</label>
                   <input
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="email"
@@ -142,7 +275,7 @@ const AddEvent = () => {
                   />
                 </div>
                 <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
-                  <label>Mobile Number</label>
+                  <label className="font-semibold">Mobile Number</label>
                   <input
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="text"
@@ -155,7 +288,7 @@ const AddEvent = () => {
                   />
                 </div>
                 <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
-                  <label>Date</label>
+                  <label className="font-semibold">Date</label>
                   <input
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="date"
@@ -166,8 +299,8 @@ const AddEvent = () => {
                     }}
                   />
                 </div>
-                <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
-                  <label>Clubname</label>
+                {/* <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
+                  <label className="font-semibold">Clubname</label>
                   <input
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="text"
@@ -177,21 +310,50 @@ const AddEvent = () => {
                       setForm({ ...form, clubname: e.target.value });
                     }}
                   />
+                </div> */}
+                <div className="flex flex-col my-3 gap-2 w-[350px]">
+                  <label className="font-semibold">Booking Type</label>
+                  <div className="flex flex-row justify-center items-center gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="bookingType"
+                        value="club"
+                        checked={form.requestType === 'club'}
+                        onChange={(e) => setForm({ ...form, requestType: e.target.value })}
+                        className="mr-2"
+                      />
+                      Club
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="bookingType"
+                        value="teacher"
+                        checked={form.requestType === 'teacher'}
+                        onChange={(e) => setForm({ ...form, requestType: e.target.value })}
+                        className="mr-2"
+                      />
+                      Teacher
+                    </label>
+                  </div>
                 </div>
+                {form.requestType === 'club' && (
+                  <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
+                    <label className="font-semibold">Club Name</label>
+                    <input
+                      className="rounded-[5px] w-[200px] outline-none pl-2"
+                      type="text"
+                      placeholder="Enter club name"
+                      value={form.clubname}
+                      onChange={(e) => {
+                        setForm({ ...form, clubname: e.target.value });
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
-                  <label>Approved By</label>
-                  <input
-                    className="rounded-[5px] w-[200px] outline-none pl-2"
-                    type="text"
-                    required
-                    value={form.approve}
-                    onChange={(e) => {
-                      setForm({ ...form, approve: e.target.value });
-                    }}
-                  />
-                </div>
-                <div className="flex flex-row justify-between my-3 gap-7 w-[350px]">
-                  <label>PDF</label>
+                  <label className="font-semibold">PDF</label>
                   <input
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="file"
@@ -230,7 +392,11 @@ const AddEvent = () => {
                 value={form.startTime}
                 label="time"
                 onChange={(e) => {
-                  setForm({ ...form, startTime: Number(e.target.value) });
+                  setForm({
+                    ...form,
+                    startTime: Number(e.target.value),
+                    endTime: 15 // Reset end time when start time changes
+                  });
                 }}
                 MenuProps={{
                   PaperProps: {
@@ -241,13 +407,14 @@ const AddEvent = () => {
                   },
                 }}
               >
-                {option.map((val) => (
+                {getAvailableStartTimes().map((val) => (
                   <MenuItem key={val} value={val}>
                     {convertMinutesToTime(val)}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+
             <FormControl sx={{ m: 1, width: 120 }} size="small">
               <InputLabel id="demo-select-small-label">End</InputLabel>
               <Select
@@ -267,17 +434,11 @@ const AddEvent = () => {
                   },
                 }}
               >
-                {option.map((val) => {
-                  if (form.startTime < val) {
-                    return (
-                      <MenuItem key={val} value={val}>
-                        {convertMinutesToTime(val)}
-                      </MenuItem>
-                    );
-                  } else {
-                    return <></>;
-                  }
-                })}
+                {getAvailableEndTimes(form.startTime).map((val) => (
+                  <MenuItem key={val} value={val}>
+                    {convertMinutesToTime(val)}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </div>

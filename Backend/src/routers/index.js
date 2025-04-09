@@ -3,9 +3,11 @@ const router = new express.Router();
 const User = require("../models");
 const auth = require("../middleware/auth");
 const bcrypt = require("bcryptjs");
+const { log } = require("console");
 const saltRounds = 10;
 
 router.post("/createticket", async (req, res) => {
+
   try {
     const {
       name,
@@ -14,47 +16,24 @@ router.post("/createticket", async (req, res) => {
       eventdescription,
       date,
       clubname,
-      approve,
+      requestType,
       file,
       startTime,
       endTime,
     } = req.body;
-    if (!name || !email || !mobileno || !eventdescription || !date || !clubname || !startTime || !endTime) {
-      return res.status(400).json({ error: "Please fill up all the fields"});
+    if (!name || !email || !mobileno || !eventdescription || !date || !startTime || !endTime) {
+      return res.status(400).json({ error: "Please fill up all fields"});
   }
-    // Check booking date
-    const currDate = new Date().getTime();
-    const bookDate = new Date(date).getTime();
-    console.log(date);
-    if (bookDate < currDate) { 
-      console.log(bookDate);
-      return res.status(400).json({ error: "Booking cannot be made on past date!"});
-    }
-    // Check if slot is booked or not
-    let flag = "notbooked";
-    const docs = await User.Ticket.find({ date: date });
-    docs.forEach(function (doc) {
-      if((doc.startTime >= startTime && doc.startTime <= endTime && doc.endTime >= endTime) ||
-         (doc.startTime <= startTime && doc.endTime >= startTime && doc.endTime <= endTime) || 
-         (doc.startTime >= startTime &&  doc.endTime <= endTime) || 
-         (doc.startTime <= startTime &&  doc.endTime >= endTime)){
-           console.log("Time slot is already booked");
-           flag = "booked";
-      }
-    });
-    console.log(flag);
-    if (flag === "booked") {
-      return res.status(400).json({ error: "Time slot is already booked" });
-    }
-
     const ticket = new User.Ticket({
       name,
       email,
       mobileno,
       eventdescription,
       date,
-      clubname,
-      approve,
+      clubname: requestType === "club" ? clubname : null,
+      requestType,
+      status: "pending",
+      approvedBy: null,
       file,
       startTime,
       endTime,
@@ -70,47 +49,56 @@ router.post("/createticket", async (req, res) => {
 });
 
 // Route to update ticket status
-router.put("/updateticket/:ticketId", auth,async (req, res) => {
+router.put("/updateticket/:ticketId", auth(["sub-admin", "super-admin"]), async (req, res) => {
   try {
     const { ticketId } = req.params;
     const { status } = req.body;
-    const allowedStatuses = ["booked", "declined", "pending"];
-    if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
+    const ticket = await User.Ticket.findById(ticketId);
+    // console.log(req.body);
+    
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
     }
 
-    const ticket = await User.Ticket.findById(ticketId);
-    if (ticket.status === "pending") {
-      ticket.status = status;
-      await ticket.save();
-      // res.json(ticket);
-    } else {
-      ticket.status = status;
-      await ticket.save();
-      res.json("Status Updated Successfully!");
+    if (req.user.role === "sub-admin") {
+      if (!["booked", "declined", "forwarded"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status for sub-admin" });
+      }
+      if (status === "forwarded") {
+        ticket.status = "pending";
+        ticket.approvedBy = "sub-admin";
+      } else {
+        ticket.status = status;
+        ticket.approvedBy = "sub-admin";
+      }
     }
-    if (status === "booked") {
-      return res.json("Booking Request Accepted successfully!");
+
+    if (req.user.role === "super-admin") {
+      if (!["booked", "declined"].includes(status)) {
+        return res.status(400).json({ error: "Super-admin can only approve or decline" });
+      } else {
+        ticket.status = status;
+        ticket.approvedBy = "super-admin";
+      }
     }
-    if (status === "declined") {
-      return res.json("Booking Request Declined!");
-    }
-    if (status === "pending") {
-      return res.json("Booking Request Pending!");
-    } 
+
+    await ticket.save();
+    res.json({ message: "Ticket updated successfully", ticket });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to update ticket status" });
+    res.status(500).json({ error: "Failed to update ticket" });
   }
 });
 
+
 // Route to check the status of a ticket
-// GET /ticket?status=booked
 router.get("/ticket", async (req, res) => {
   try {
     const { status } = req.query;
+    console.log(req.query);
     if (!status) {
       const tickets = await User.Ticket.find({});
+      // console.log(tickets)
       return res.json(tickets);
     }
     const allowedStatuses = ["booked", "declined", "pending"];
@@ -118,6 +106,7 @@ router.get("/ticket", async (req, res) => {
       return res.status(400).json({ error: "Invalid status" });
     }
     const tickets = await User.Ticket.find({ status });
+    // console.log(tickets)
     res.json(tickets);
   } catch (err) {
     console.error(err);
@@ -126,15 +115,15 @@ router.get("/ticket", async (req, res) => {
 });
 
 router.post("/Adminregister", async (req, res) => {
-  const { email, username, password } = req.body;
+  const { email, username, password, role} = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     await User.RegistrationUser.create({
       email,
       username,
       password: hashedPassword,
+      role: role,
     });
-
     res.send("Registration Successfully");
   } catch (err) {
     console.error("Registration error:", err);
@@ -146,17 +135,13 @@ router.post("/Adminlogin", async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.RegistrationUser.findOne({ email });
-    if (user) {
-      const passwordMatch = await bcrypt.compare(password, user.password);
-      if (passwordMatch) {
-        const token = await user.generateAuthToken();
-        res.send({ token });
-      } else {
-        res.status(400).send("Login failed");
-      }
-    } else {
-      res.status(400).send("Login failed");
-    }
+    if (!user) return res.status(400).send("User not found");
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) return res.status(400).send("Incorrect password");
+
+    const token = await user.generateAuthToken();
+    res.json({ token, role: user.role });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).send("Login failed");
