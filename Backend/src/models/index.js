@@ -4,53 +4,55 @@ const jwt = require("jsonwebtoken");
 const ticketSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, "Please tell us your name"],
+    required: true
   },
-
-  email: {
+  email: { 
+    type: String, 
+    required: true, 
+    lowercase: true 
+  },
+  mobileno: { 
+    type: String, 
+    required: true 
+  },
+  eventdescription: { 
+    type: String, 
+    required: true, 
+    lowercase: true 
+  },
+  date: { 
+    type: Date, 
+    required: true 
+  },
+  clubname: { 
     type: String,
-    required: [true, "Please provide us your Email"],
-    lowercase: true,
+    default: null
   },
-
-  mobileno: {
-    type: String,
-    required: [true, "Please tell us your name"],
+  requestType: { 
+    type: String, 
+    enum: ["club", "teacher"], 
+    required: true 
   },
-
-  eventdescription: {
-    type: String,
-    required: [true, "Please provide us your Message"],
-    lowercase: true,
+  status: { 
+    type: String, 
+    enum: ["pending", "forwarded", "booked", "declined"], 
+    default: "pending" 
   },
-  date: {
-    type: Date,
-    required: [true, "Please provide us your Date"],
+  approvedBy: { 
+    type: String, 
+    enum: ["sub-admin", "super-admin", null], 
+    default: null 
   },
-  clubname: {
-    type: String,
-    required: [true, "Please provide us your Club Name"],
+  file: { 
+    type: String 
   },
-  approve: {
-    type: String,
-    required: [true, "Please provide us your approval"],
+  startTime: { 
+    type: String, 
+    required: true 
   },
-  file: {
-    type: String,
-    required: [true, "Please provide us your file"],
-  },
-  startTime: {
-    type: String,
-    required: [true, "Please provide us your Start Time"],
-  },
-  endTime: {
-    type: String,
-    required: [true, "Please provide us your End Time"],
-  },
-  status: {
-    type: String,
-    enum: ["pending", "declined", "booked"],
-    default: "pending",
+  endTime: { 
+    type: String, 
+    required: true 
   },
 });
 
@@ -59,37 +61,82 @@ const userSchemaRegistration = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
   },
   username: {
     type: String,
     required: true,
+    unique: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 50
   },
   password: {
     type: String,
     required: true,
+    minlength: 8
   },
-  tokens: [
-    {
-      token: {
-        type: String,
-        required: true,
-      },
+  role: {
+    type: String,
+    enum: ["super-admin", "sub-admin", "user"],
+    required: true,
+    default: "user"
+  },
+  tokens: [{
+    token: {
+      type: String,
+      required: true
     },
-  ],
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      expires: '7d' 
+    }
+  }],
+  lastLogin: {
+    type: Date
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  }
+}, {
+  timestamps: true 
 });
 
 userSchemaRegistration.methods.generateAuthToken = async function () {
   try {
     const token = jwt.sign(
-      { _id: this._id.toString() },
-      process.env.JWT_SECRET
+      { 
+        _id: this._id.toString(),
+        role: this.role,
+        email: this.email
+      },
+      process.env.JWT_SECRET,
+      { 
+        expiresIn: '7d',
+        algorithm: 'HS256'
+      }
     );
-    this.tokens = this.tokens.concat({ token: token });
+
+    if (this.tokens.length >= 5) {
+      this.tokens.shift(); 
+    }
+
+    this.tokens.push({ 
+      token: token,
+      createdAt: new Date()
+    });
+
+    this.lastLogin = new Date();
     await this.save();
     return token;
   }
   catch (error) {
-    console.log("the error part" + error);
+    console.error("Token generation error:", error);
+    throw new Error("Unable to generate authentication token");
   }
 };
 

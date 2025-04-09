@@ -6,7 +6,7 @@ import Request from "./Pages/Request";
 import Login from "./Pages/Login";
 
 import ViewRequests from "./Pages/ViewRequests";
-import Footer from "./Component/Footer";
+// import Footer from "./Component/Footer";
 
 const App = () => {
   const [home, setHome] = useState(true);

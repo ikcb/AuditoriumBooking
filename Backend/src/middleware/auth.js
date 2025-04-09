@@ -1,15 +1,16 @@
 const jwt = require("jsonwebtoken");
 const { RegistrationUser } = require("../models/index");
 
-const auth = async (req, res, next) => {
+const auth = (roles = []) => async (req, res, next) => {
   try {
-    const token = req.body.token;
+    const token = req.body.token || req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).send({ error: "Unauthorized" });
+
     const verifyUser = jwt.verify(token, process.env.JWT_SECRET);
     console.log(verifyUser);
-
     const user = await RegistrationUser.findOne({ _id: verifyUser._id });
-    if (!user) {
-      throw new Error("User not found");
+    if (!user || (roles.length && !roles.includes(user.role))) {
+      return res.status(403).send({ error: "Forbidden" });
     }
     
     req.token = token;
@@ -17,6 +18,7 @@ const auth = async (req, res, next) => {
 
     next();
   } catch (error) {
+    res.status(401).send({ error: "Authentication failed" });
     res.status(400).send({ error: "Please Authenticate" });
   }
 };

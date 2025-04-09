@@ -13,14 +13,14 @@
     display: none;
 }
 
-.fc-day-today {
+/* .fc-day-today {
     @apply bg-gradient-to-l from-cyan-100 to-cyan-300
-}
+} */
 
-.fc-day-sat,
+/* .fc-day-sat,
 .fc-day-sun {
     @apply bg-slate-200/80
-}
+} */
 
 .fc .fc-button-primary,
 .fc-timeGridWeek-button {
@@ -56,9 +56,9 @@
     font-weight: 700;
 }
 
-.react-calendar__tile--now {
+/* .react-calendar__tile--now {
     @apply border border-[1px] rounded-[7px] p-[2px] text-white border-black border-solid bg-slate-700 !important
-}
+} */
 
 .react-calendar__month-view__days {
     row-gap: 10px;
@@ -121,3 +121,66 @@
     scrollbar-width: none;
     /* Firefox */
 }   
+
+
+
+/* General tile styling */
+.react-calendar__tile {
+    position: relative;
+}
+
+/* Base event date styles */
+.react-calendar__tile.event-date::after,
+.react-calendar__tile.today-date::after,
+.react-calendar__tile.today-date.event-date::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    z-index: 1;
+    pointer-events: none;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+}
+
+/* Event Date (Red) */
+.react-calendar__tile.event-date::after {
+    background: radial-gradient(circle at center, rgba(255, 0, 0, 0.2) 0%, rgba(255, 0, 0, 0.1) 100%);
+    border: 2px solid rgba(255, 0, 0, 0.6);
+    box-shadow: 0 2px 4px rgba(255, 0, 0, 0.2);
+}
+
+.react-calendar__tile.event-date:hover::after {
+    transform: translate(-50%, -50%) scale(1.15);
+    background: radial-gradient(circle at center, rgba(255, 0, 0, 0.3) 0%, rgba(255, 0, 0, 0.2) 100%);
+    box-shadow: 0 4px 6px rgba(255, 0, 0, 0.4);
+}
+
+/* Today’s Date (Blue) */
+.react-calendar__tile.today-date::after {
+    background: radial-gradient(circle at center, rgba(0, 0, 255, 0.2) 0%, rgba(0, 0, 255, 0.1) 100%);
+    border: 2px solid rgba(0, 0, 255, 0.6);
+    box-shadow: 0 2px 4px rgba(0, 0, 255, 0.2);
+}
+
+.react-calendar__tile.today-date:hover::after {
+    transform: translate(-50%, -50%) scale(1.15);
+    background: radial-gradient(circle at center, rgba(0, 0, 255, 0.3) 0%, rgba(0, 0, 255, 0.2) 100%);
+    box-shadow: 0 4px 6px rgba(0, 0, 255, 0.4);
+}
+
+/* Combined Today + Event Date (Purple) */
+.react-calendar__tile.today-date.event-date::after {
+    background: radial-gradient(circle at center, rgba(128, 0, 128, 0.2) 0%, rgba(128, 0, 128, 0.1) 100%);
+    border: 3px solid rgba(128, 0, 128, 0.6);
+    box-shadow: 0 2px 4px rgba(128, 0, 128, 0.2);
+}
+
+.react-calendar__tile.today-date.event-date:hover::after {
+    transform: translate(-50%, -50%) scale(1.15);
+    background: radial-gradient(circle at center, rgba(128, 0, 128, 0.3) 0%, rgba(128, 0, 128, 0.2) 100%);
+    box-shadow: 0 4px 6px rgba(128, 0, 128, 0.4);
+}

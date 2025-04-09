@@ -1,6 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable react/prop-types */
-/* eslint-disable react/jsx-key */
 import { useEffect, useState } from "react";
 import React from "react";
 import { FaCheckCircle, FaTimesCircle } from "react-icons/fa";
@@ -10,8 +7,8 @@ import toast, { Toaster } from "react-hot-toast";
 import Footer from "../Component/Footer";
 import Spinner from "../Component/Spinner";
 import Popup from "../Component/Popup";
-import statusimg from "../assets/img_group.svg";
-import { Bars } from "react-loader-spinner";
+import { FaArrowRight } from "react-icons/fa";
+// import statusimg from "../assets/img_group.svg";
 
 export default function ViewRequests() {
   const [tickets, setTickets] = useState([]);
@@ -21,9 +18,12 @@ export default function ViewRequests() {
   const [updatestatusid, setUpdatestatusid] = useState("");
   const [activeButton, setActiveButton] = useState("pending");
   const [loading, setloading] = useState(false);
-  const [showupdatestatus, setShowupdatestatus] = useState(false);
+  // const [showupdatestatus, setShowupdatestatus] = useState(false);
   const [selectedRowData, setSelectedRowData] = useState(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const userRole = localStorage.getItem("role");
+  const userId = localStorage.getItem("userEmail");
+  // console.log(userRole);
 
   const openPopup = () => {
     setIsPopupOpen(true);
@@ -32,11 +32,7 @@ export default function ViewRequests() {
   const closePopup = () => {
     setIsPopupOpen(false);
   };
-  const [isLoading, setIsLoading] = useState(true);
 
-  setTimeout(() => {
-    setIsLoading(false);
-  }, 3000);
   const fetchData = async () => {
     setloading(true);
     setActiveButton("pending");
@@ -44,12 +40,31 @@ export default function ViewRequests() {
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/ticket?status=pending`
       );
-      setTickets(response.data);
+      // console.log(tickets);
+      let DisplayData = response.data.filter(ticket => ticket.email === userId);
+
+      if (userRole !== "super-admin" && userRole !== "sub-admin") {
+        setTickets(DisplayData);
+      } else {
+        if (userRole === "sub-admin") {
+          DisplayData = response.data.filter(ticket =>
+            ticket.approvedBy === null && ticket.requestType === "club"
+          );
+          setTickets(DisplayData);
+        } else {
+          // userRole is super-admin
+          DisplayData = response.data.filter(ticket =>
+            ticket.requestType === "teacher" || ticket.approvedBy === "sub-admin"
+          );
+          setTickets(DisplayData);
+        }
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     }
     setloading(false);
   };
+
   const handleBookedClick = async () => {
     setloading(true);
     setActiveButton("booked");
@@ -57,7 +72,14 @@ export default function ViewRequests() {
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/ticket?status=booked`
       );
-      setTickets(response.data);
+      // console.log(response);
+      let DisplayData = response.data.filter(ticket => ticket.email === userId);
+
+      if (userRole !== "super-admin" && userRole !== "sub-admin") {
+        setTickets(DisplayData);
+      } else {
+        setTickets(response.data);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -71,7 +93,25 @@ export default function ViewRequests() {
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/ticket?status=pending`
       );
-      setTickets(response.data);
+      // console.log(response.data[0].email);
+      let DisplayData = response.data.filter(ticket => ticket.email === userId);
+
+      if (userRole !== "super-admin" && userRole !== "sub-admin") {
+        setTickets(DisplayData);
+      } else {
+        if (userRole === "sub-admin") {
+          DisplayData = response.data.filter(ticket =>
+            ticket.approvedBy === null && ticket.requestType === "club"
+          );
+          setTickets(DisplayData);
+        } else {
+          // userRole is super-admin
+          DisplayData = response.data.filter(ticket =>
+            ticket.requestType === "teacher" || ticket.approvedBy === "sub-admin"
+          );
+          setTickets(DisplayData);
+        }
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -85,49 +125,20 @@ export default function ViewRequests() {
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/ticket?status=declined`
       );
-      setTickets(response.data);
+      // console.log(response.data);
+      let DisplayData = response.data.filter(ticket => ticket.email === userId);
+
+      if (userRole !== "super-admin" && userRole !== "sub-admin") {
+        setTickets(DisplayData);
+      } else {
+        setTickets(response.data);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     }
     setloading(false);
   };
 
-  const UpdateStatus = async (id, status) => {
-    try {
-      const authtoken = localStorage.getItem("authtoken");
-      if (!authtoken) {
-        toast.error("Please login to continue!");
-        return;
-      }
-
-      axios
-        .put(`${import.meta.env.VITE_BASE_URL}/updateticket/${id}`, {
-          status: status,
-          token: authtoken,
-        })
-        .then((response) => {
-          toast.success("Status Updated Successfully!");
-
-          if (activeButton === "pending")
-            handlePendingClick();
-          else if (activeButton === "booked")
-            handleBookedClick();
-          else
-            handleDeclinedClick();
-          console.log(response);
-          toast.success(response.data);
-          fetchData();
-          setUpdatestatusid("");
-        })
-        .catch((error) => {
-          toast.error(error.response.data.message);
-          fetchData();
-          setUpdatestatusid("");
-        });
-    } catch (error) {
-      console.error("Error updating ticket:", error);
-    }
-  };
 
   const handleClick = async (id, status) => {
     try {
@@ -142,9 +153,17 @@ export default function ViewRequests() {
         { status: status, token: authtoken }
       );
       if (response) {
-      
-          toast.error(response.data);
-      
+        if (status === "booked") {
+          toast.success("Booking Request Accepted successfully!");
+        }
+        else if (status === "declined") {
+          toast.error("Booking Request Declined!");
+        }
+        else if (status === "pending") {
+          toast.success("Booking Request forwarded!");
+        } else {
+          toast.error(status);
+        }
       }
       await fetchData();
     } catch (error) {
@@ -157,8 +176,9 @@ export default function ViewRequests() {
     if (parts.length === 3) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
-    return dateString; // Return the original string if it's not in the expected format
+    return dateString;
   }
+
   const columns = React.useMemo(
     () => [
       {
@@ -172,11 +192,6 @@ export default function ViewRequests() {
         Header: "Club Name",
         accessor: "clubname",
       },
-
-      // {
-      //   Header: "Email",
-      //   accessor: "email",
-      // },
       {
         Header: "Start Time",
         accessor: "startTime",
@@ -190,24 +205,16 @@ export default function ViewRequests() {
         accessor: "date",
         Cell: ({ cell }) => reverseDateFormat(cell.value.slice(0, 10)),
       },
-      // {
-      //   Header: "Event Description",
-      //   accessor: "eventdescription",
-      // },
-      // {
-      //   Header: "Mobile No",
-      //   accessor: "mobileno",
-      // },
       {
         Header: "Name",
         accessor: "name",
       },
       {
-        Header: " Details",
+        Header: "Details",
         accessor: "details",
         Cell: ({ row }) => (
           <div
-            className="flex  underline cursor-pointer justify-center bg-blue-500 hover:bg-blue-700 text-white  py-1 px-1 rounded"
+            className="flex underline cursor-pointer justify-center bg-blue-500 hover:bg-blue-700 text-white py-1 px-1 rounded"
             onClick={() => {
               setSelectedRowData(row.original);
               openPopup();
@@ -222,9 +229,8 @@ export default function ViewRequests() {
         accessor: "status",
         Cell: ({ row }) => (
           <div className="flex relative gap-4">
-            {row.original.status === "pending" ? (
+            {userRole === "super-admin" && row.original.status === "pending" && (
               <>
-                {" "}
                 <button
                   className="accept-button"
                   onClick={() => handleClick(row.original._id, "booked")}
@@ -238,68 +244,37 @@ export default function ViewRequests() {
                   <FaTimesCircle className="text-red-500 text-2xl" />
                 </button>
               </>
-            ) : (
+            )}
+            {userRole === "sub-admin" && row.original.status === "pending" && (
               <>
-                <img
-                  className="ml-[35px] my-px cursor-pointer"
-                  src={statusimg}
-                  onClick={() => {
-                    if (updatestatusid === row.original._id) {
-                      setUpdatestatusid("");
-                    } else {
-                      setUpdatestatusid(row.original._id);
-                    }
-                  }}
-                  alt="Group"
-                />
-                {updatestatusid === row.original._id && (
-                  <div className="updatestatus absolute w-auto top-0 left-[-130px] z-[10] px-2 update_status mr-[10px]">
-                    <div className="w-auto h-auto  border-[1px] border-[#EAEAEA] bg-[#F2F5F8]  rounded-[12px] ">
-                      <div className="w-full h-full flex flex-col gap-0 justify-between cursor-pointer font-[Inter] text-[12px] font-[400]">
-                        <div className="pt-[5px] pb-[10px] flex items-center w-[144px] justify-center text-[12px] font-bold ">
-                          UPDATE STATUS
-                        </div>
-                        {activeButton != "booked" &&
-                          <div
-                            onClick={() =>
-                              UpdateStatus(row.original._id, "booked")
-                            }
-                            className="h-auto flex items-center px-[15px] py-[7px] bg-[#FFF]"
-                          >
-                            Booked
-                          </div>
-                        }
-                        {activeButton != "pending" &&
-                          <div
-                            onClick={() =>
-                              UpdateStatus(row.original._id, "pending")
-                            }
-                            className="h-auto flex items-center px-[15px] py-[7px] bg-[#FFF]"
-                          >
-                            Pending
-                          </div>}
-                        {activeButton != "declined" &&
-                          <div
-                            onClick={() =>
-                              UpdateStatus(row.original._id, "declined")
-                            }
-                            className="h-auto flex items-center px-[15px] py-[7px] bg-[#FFF]"
-                          >
-                            Decline
-                          </div>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <button
+                  className="accept-button"
+                  onClick={() => handleClick(row.original._id, "booked")}
+                >
+                  <FaCheckCircle className="text-green-500 text-2xl" />
+                </button>
+                <button
+                  className="decline-button"
+                  onClick={() => handleClick(row.original._id, "declined")}
+                >
+                  <FaTimesCircle className="text-red-500 text-2xl" />
+                </button>
+                <button
+                  className="forward-button"
+                  onClick={() => handleClick(row.original._id, "forwarded")}
+                >
+                  <FaArrowRight className="text-blue-500 text-2xl" />
+                </button>
               </>
+            )}
+            {userRole !== "super-admin" && userRole !== "sub-admin" && (
+              <div>{row.original.status}</div>
             )}
           </div>
         ),
       },
-      
     ],
-    [updatestatusid]
+    [updatestatusid, userRole]
   );
 
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -311,20 +286,20 @@ export default function ViewRequests() {
   return (
     <>
       <div>
-      {isPopupOpen && <Popup data={selectedRowData} onClose={closePopup} />}
+        {isPopupOpen && <Popup data={selectedRowData} onClose={closePopup} />}
         <Toaster />
       </div>
       <div className="mx-8 flex gap-[10px]">
         <button
           onClick={handleBookedClick}
-          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton == "booked" ? "bg-slate-800 text-white" : "bg-gray-200"
+          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton === "booked" ? "bg-slate-800 text-white" : "bg-gray-200"
             }`}
         >
           Booked
         </button>
         <button
           onClick={handlePendingClick}
-          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton == "pending"
+          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton === "pending"
             ? "bg-slate-800 text-white"
             : "bg-gray-200"
             }`}
@@ -333,7 +308,7 @@ export default function ViewRequests() {
         </button>
         <button
           onClick={handleDeclinedClick}
-          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton == "declined"
+          className={`rounded-md p-2 shadow-md hover:bg-gray-400 ${activeButton === "declined"
             ? "bg-slate-800 text-white"
             : "bg-gray-200"
             }`}
@@ -341,46 +316,30 @@ export default function ViewRequests() {
           Declined
         </button>
       </div>
-      {isLoading ? (
-        <div
-          style={{
-            width: "100px",
-            margin: "auto",
-          }}
+      <div className="min-h-[80vh] mt-[20px] mx-8 overflow-x-auto flex justify-center items-start">
+        <Spinner show={loading} />
+        <table
+          {...getTableProps()}
+          className="w-[1500px] divide-y divide-gray-200 bg-white shadow-md"
         >
-          <Bars
-            height="90"
-            width="90"
-            color="#5c85f8"
-            ariaLabel="bars-loading"
-            wrapperStyle={{ marginTop: "200px", marginBottom: "350px" }}
-            wrapperClass=""
-            visible={true}
-          />
-        </div>
-      ) : (
-        <div className="min-h-[80vh] mt-[20px]  mx-8 overflow-x-auto flex  justify-center items-start">
-          <table
-            {...getTableProps()}
-            className="w-[1500px] divide-y divide-gray-200 bg-white shadow-md"
-          >
-            <thead>
-              {headerGroups.map((headerGroup) => (
-                <tr
-                  {...headerGroup.getHeaderGroupProps()}
-                  className="bg-gray-100"
-                >
-                  {headerGroup.headers.map((column) => (
-                    <th
-                      {...column.getHeaderProps()}
-                      className="py-3 px-6 text-left font-semibold text-gray-700"
-                    >
-                      {column.render("Header")}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
+          <thead>
+            {headerGroups.map((headerGroup) => (
+              <tr
+                {...headerGroup.getHeaderGroupProps()}
+                className="bg-gray-100"
+              >
+                {headerGroup.headers.map((column) => (
+                  <th
+                    {...column.getHeaderProps()}
+                    className="py-3 px-6 text-left font-semibold text-gray-700"
+                  >
+                    {column.render("Header")}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          {!loading &&
             <tbody {...getTableBodyProps()}>
               {rows.map((row) => {
                 prepareRow(row);
@@ -392,7 +351,7 @@ export default function ViewRequests() {
                     {row.cells.map((cell) => (
                       <td
                         {...cell.getCellProps()}
-                        className="py-3 px-3 text-gray-700"
+                        className="py-3 px-3 text-gray-700 "
                       >
                         {cell.render("Cell")}
                       </td>
@@ -400,10 +359,9 @@ export default function ViewRequests() {
                   </tr>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </tbody>}
+        </table>
+      </div>
       <div className="">
         <Footer />
       </div>
