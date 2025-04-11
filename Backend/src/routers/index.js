@@ -125,9 +125,35 @@ router.get("/ticket", async (req, res) => {
   }
 });
 
+const parseRoleEmails = (roleEmailsString) => {
+  const roleEmails = {};
+  const roleEntries = roleEmailsString.split(';');
+  roleEntries.forEach(entry => {
+    const [role, emails] = entry.split(':');
+    roleEmails[role] = emails.split(',');
+  });
+  return roleEmails;
+};
+
+const roleEmails = parseRoleEmails(process.env.ROLE_EMAILS);
+
 router.post("/Adminregister", async (req, res) => {
-  const { email, username, password, role} = req.body;
+  const { email, username, password } = req.body;
+  let role;
   try {
+    let allowedEmails = false;
+    for(const  key in roleEmails){
+      if(roleEmails[key].includes(email)){
+        role = key;
+        allowedEmails = true;
+        break;
+      }
+    }
+
+    if (!allowedEmails) {
+      return res.status(403).send("Email not allowed for registration");
+    }
+
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     await User.RegistrationUser.create({
       email,
