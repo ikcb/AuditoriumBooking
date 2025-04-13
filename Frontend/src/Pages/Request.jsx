@@ -43,13 +43,12 @@ const AddEvent = () => {
     date: "",
     clubname: "",
     requestType: "",
-    file: null,
     startTime: 0,
     endTime: 15,
     status: "pending",
   });
   const [bookedSlots, setBookedSlots] = useState([]);
-  const [pdfData, setPdfData] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
 
   // Fetch booked slots when date changes
   useEffect(() => {
@@ -114,21 +113,7 @@ const AddEvent = () => {
     });
   };
 
-  function pdfToBinary(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        setPdfData(base64String);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      return null;
-    }
-  }
-
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validation
     const validationErrors = [];
 
@@ -166,7 +151,7 @@ const AddEvent = () => {
     }
 
     // File validation
-    if (!pdfData) validationErrors.push("PDF file is required");
+    if (!selectedFile) validationErrors.push("PDF file is required");
 
     // Time slot validation
     if (!isTimeSlotAvailable(form.startTime, form.endTime)) {
@@ -179,61 +164,82 @@ const AddEvent = () => {
       return;
     }
 
-    // Prepare request payload
-    const req = {
-      name: form.name,
-      email: form.email.toLowerCase(),
-      mobileno: form.mobileno,
-      eventdescription: form.eventdescription.toLowerCase(),
-      date: new Date(form.date),
-      clubname: form.requestType === 'club' ? form.clubname : null, // Only include if club type
-      requestType: form.requestType,
-      file: pdfData,
-      startTime: convertMinutesToTime(form.startTime),
-      endTime: convertMinutesToTime(form.endTime),
-      status: "pending"
-    };
+    // Create FormData object to send file and other data
+    const formData = new FormData();
+    formData.append('name', form.name);
+    formData.append('email', form.email.toLowerCase());
+    formData.append('mobileno', form.mobileno);
+    formData.append('eventdescription', form.eventdescription.toLowerCase());
+    formData.append('date', form.date);
+    if (form.requestType === 'club') {
+      formData.append('clubname', form.clubname);
+    }
+    formData.append('requestType', form.requestType);
+    formData.append('startTime', convertMinutesToTime(form.startTime));
+    formData.append('endTime', convertMinutesToTime(form.endTime));
+    formData.append('file', selectedFile);
 
-    // Log payload for debugging
-    console.log("Request Payload:", JSON.stringify(req, null, 2));
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/createticket`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
 
-    axios
-      .post(`${import.meta.env.VITE_BASE_URL}/createticket`, req)
-      .then((res) => {
-        toast.success("Booking Request created successfully!");
+      // Show success toast
+      toast.success("Booking Request sent successfully!");
 
-        // Reset form
-        setForm({
-          name: "",
-          email: "",
-          mobileno: "",
-          eventdescription: "",
-          date: "",
-          clubname: "",
-          requestType: "",
-          file: null,
-          startTime: 0,
-          endTime: 15,
-          status: "pending",
-        });
-        setPdfData("");
-      })
-      .catch((err) => {
-        // Detailed error logging
-        console.error("Error Details:", {
-          status: err.response?.status,
-          data: err.response?.data,
-          headers: err.response?.headers,
-          message: err.message
-        });
-
-        // More informative error message
-        const errorMessage = err.response?.data?.message ||
-          err.response?.data?.error ||
-          "Booking Request failed!";
-
-        toast.error(errorMessage);
+      // Reset form to initial state
+      setForm({
+        name: "",
+        email: "",
+        mobileno: "",
+        eventdescription: "",
+        date: "",
+        clubname: "",
+        requestType: "",
+        startTime: 0,
+        endTime: 15,
+        status: "pending",
       });
+
+      // Reset file state
+      setSelectedFile(null);
+      
+      // Reset file input
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
+
+      // Reset any radio buttons
+      const radioInputs = document.querySelectorAll('input[type="radio"]');
+      radioInputs.forEach(input => {
+        input.checked = false;
+      });
+
+      // Optional: Scroll to top of form
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+
+    } catch (err) {
+      console.error("Error Details:", {
+        status: err.response?.status,
+        data: err.response?.data,
+        headers: err.response?.headers,
+        message: err.message
+      });
+
+      const errorMessage = err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Booking Request failed!";
+
+      toast.error(errorMessage);
+    }
   };
 
   return (
@@ -357,11 +363,16 @@ const AddEvent = () => {
                   <input
                     className="rounded-[5px] w-[200px] outline-none pl-2"
                     type="file"
+                    accept=".pdf"
                     required
-                    value={form.file}
                     onChange={(e) => {
-                      pdfToBinary(e);
-                      setForm({ ...form, file: e.target.value });
+                      const file = e.target.files[0];
+                      if (file && file.type === 'application/pdf') {
+                        setSelectedFile(file);
+                      } else {
+                        toast.error('Please select a valid PDF file');
+                        e.target.value = '';
+                      }
                     }}
                   />
                 </div>

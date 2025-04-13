@@ -4,10 +4,11 @@ const User = require("../models");
 const auth = require("../middleware/auth");
 const bcrypt = require("bcryptjs");
 const { log } = require("console");
+const { upload } = require('../config/cloudinary');
 const saltRounds = 10;
+require("dotenv").config();
 
-router.post("/createticket", async (req, res) => {
-
+router.post("/createticket", upload.single('file'), async (req, res) => {
   try {
     const {
       name,
@@ -17,34 +18,44 @@ router.post("/createticket", async (req, res) => {
       date,
       clubname,
       requestType,
-      file,
       startTime,
       endTime,
     } = req.body;
+
     if (!name || !email || !mobileno || !eventdescription || !date || !startTime || !endTime) {
-      return res.status(400).json({ error: "Please fill up all fields"});
-  }
+      return res.status(400).json({ error: "Please fill up all fields" });
+    }
+
+    // Get the Cloudinary URL from the uploaded file
+    const pdfUrl = req.file ? req.file.path : null;
+
+    if (!pdfUrl) {
+      return res.status(400).json({ error: "PDF file is required" });
+    }
+
     const ticket = new User.Ticket({
       name,
       email,
       mobileno,
       eventdescription,
-      date,
+      date: new Date(date),
       clubname: requestType === "club" ? clubname : null,
       requestType,
       status: "pending",
       approvedBy: null,
-      file,
+      file: pdfUrl,
       startTime,
       endTime,
     });
-    await ticket.save();
 
+    await ticket.save();
     res.status(201).json(ticket);
-    // res.json(ticket);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to create a ticket" });
+    console.error("Error creating ticket:", err);
+    res.status(500).json({ 
+      error: "Failed to create a ticket", 
+      details: err.message 
+    });
   }
 });
 

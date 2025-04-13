@@ -283,10 +283,36 @@ export default function ViewRequests() {
       data: tickets,
     });
 
+  // Add this useEffect to handle body scroll
+  useEffect(() => {
+    if (isPopupOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup function to reset body scroll when component unmounts
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isPopupOpen]);
+
   return (
     <>
       <div>
-        {isPopupOpen && <Popup data={selectedRowData} onClose={closePopup} />}
+        {isPopupOpen && (
+          <>
+            {/* Add an overlay */}
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={closePopup}
+            />
+            {/* Position the popup in center */}
+            <div className="fixed inset-0 flex items-center justify-center z-50">
+              <Popup data={selectedRowData} onClose={closePopup} />
+            </div>
+          </>
+        )}
         <Toaster />
       </div>
       <div className="mx-8 flex gap-[10px]">
