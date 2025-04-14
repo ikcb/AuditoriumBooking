@@ -190,10 +190,9 @@ const AddEvent = () => {
         }
       );
 
-      // Show success toast
       toast.success("Booking Request sent successfully!");
 
-      // Reset form to initial state
+      // Reset form
       setForm({
         name: "",
         email: "",
@@ -206,38 +205,21 @@ const AddEvent = () => {
         endTime: 15,
         status: "pending",
       });
-
-      // Reset file state
       setSelectedFile(null);
-      
+
       // Reset file input
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = '';
 
-      // Reset any radio buttons
+      // Reset radio buttons
       const radioInputs = document.querySelectorAll('input[type="radio"]');
       radioInputs.forEach(input => {
         input.checked = false;
       });
 
-      // Optional: Scroll to top of form
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-
     } catch (err) {
-      console.error("Error Details:", {
-        status: err.response?.status,
-        data: err.response?.data,
-        headers: err.response?.headers,
-        message: err.message
-      });
-
-      const errorMessage = err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Booking Request failed!";
-
+      console.error("Error Details:", err);
+      const errorMessage = err.response?.data?.error || "Booking Request failed!";
       toast.error(errorMessage);
     }
   };

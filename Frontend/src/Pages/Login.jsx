@@ -1,11 +1,13 @@
 import axios from "axios";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect , useContext } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import Footer from "../Component/Footer";
 import { Eye, EyeOff } from 'lucide-react'; 
+import { UserContext } from "./UserProvider";
 
 function Userlogin() {
+  const {User ,setUser} = useContext(UserContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,8 @@ function Userlogin() {
   
       const { token, role } = res.data;
       console.log(res.data);
-  
+      setUser(role);
+      console.log(User);
       setLoginAttempts(5);
   
       // Secure token storage
@@ -80,7 +83,7 @@ function Userlogin() {
       setPassword("");
   
       toast.success("Login successful!");
-      navigate("/viewrequest");
+      navigate("/viewrequest" , role);
     } catch (err) {
       // Increment login attempts
       setLoginAttempts(prev => prev + 1);

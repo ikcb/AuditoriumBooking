@@ -1,14 +1,34 @@
 const express = require("express");
 const router = new express.Router();
-const User = require("../models");
+const User = require("../models/index");
 const auth = require("../middleware/auth");
 const bcrypt = require("bcryptjs");
 const { log } = require("console");
-const { upload } = require('../config/cloudinary');
+const fileUpload = require('express-fileupload');
+const { uploadToCloudinary } = require('../config/cloudinary');
 const saltRounds = 10;
 require("dotenv").config();
+const path = require('path');
+const os = require('os');
 
-router.post("/createticket", upload.single('file'), async (req, res) => {
+// Use system temp directory instead of '/tmp/'
+const tempDir = os.tmpdir();
+
+// Add file upload middleware
+router.use(fileUpload({
+  useTempFiles: true,
+  tempFileDir: tempDir,
+  createParentPath: true,
+  debug: true,
+  limits: { 
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  abortOnLimit: true,
+  safeFileNames: true,
+  preserveExtension: true
+}));
+
+router.post("/createticket", async (req, res) => {
   try {
     const {
       name,
@@ -22,16 +42,33 @@ router.post("/createticket", upload.single('file'), async (req, res) => {
       endTime,
     } = req.body;
 
+    // Validate required fields
     if (!name || !email || !mobileno || !eventdescription || !date || !startTime || !endTime) {
       return res.status(400).json({ error: "Please fill up all fields" });
     }
 
-    // Get the Cloudinary URL from the uploaded file
-    const pdfUrl = req.file ? req.file.path : null;
-
-    if (!pdfUrl) {
+    // Check if file was uploaded
+    if (!req.files || !req.files.file) {
       return res.status(400).json({ error: "PDF file is required" });
     }
+
+    const file = req.files.file;
+
+    // Validate file type
+    if (file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ error: "Only PDF files are allowed" });
+    }
+
+    console.log("Uploading file:", {
+      name: file.name,
+      size: file.size,
+      mimetype: file.mimetype,
+      tempFilePath: file.tempFilePath // Log the temp file path
+    });
+
+    // Upload file to Cloudinary
+    const fileUrl = await uploadToCloudinary(file);
+    console.log("File uploaded successfully:", fileUrl);
 
     const ticket = new User.Ticket({
       name,
@@ -43,13 +80,19 @@ router.post("/createticket", upload.single('file'), async (req, res) => {
       requestType,
       status: "pending",
       approvedBy: null,
-      file: pdfUrl,
+      file: fileUrl,
       startTime,
       endTime,
     });
 
     await ticket.save();
-    res.status(201).json(ticket);
+    console.log("🎫 Ticket saved successfully:", ticket);
+    
+    // Send success response
+    res.status(201).json({
+      message: "Booking request created successfully",
+      ticket
+    });
   } catch (err) {
     console.error("Error creating ticket:", err);
     res.status(500).json({ 

@@ -8,7 +8,6 @@ import Footer from "../Component/Footer";
 import Spinner from "../Component/Spinner";
 import Popup from "../Component/Popup";
 import { FaArrowRight } from "react-icons/fa";
-// import statusimg from "../assets/img_group.svg";
 
 export default function ViewRequests() {
   const [tickets, setTickets] = useState([]);
