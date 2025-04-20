@@ -148,8 +148,8 @@ router.put("/updateticket/:ticketId", auth(["sub-admin", "super-admin"]), async 
 // Route to check the status of a ticket
 router.get("/ticket", async (req, res) => {
   try {
-    const { status } = req.query;
-    console.log(req.query);
+    const { status,date } = req.query;
+    // console.log(req.query);
     if (!status) {
       const tickets = await User.Ticket.find({});
       // console.log(tickets)
@@ -159,7 +159,7 @@ router.get("/ticket", async (req, res) => {
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
-    const tickets = await User.Ticket.find({ status });
+    const tickets = await User.Ticket.find({ date,status });
     // console.log(tickets)
     res.json(tickets);
   } catch (err) {
