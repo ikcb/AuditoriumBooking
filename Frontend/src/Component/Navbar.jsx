@@ -31,6 +31,7 @@ const Navbar = ({ home, setHome }) => {
       localStorage.removeItem("authtoken");
       localStorage.removeItem("role");
       localStorage.removeItem("userData");
+      localStorage.removeItem("userEmail");
       navigate("/");
       setHome(true);
     } else {

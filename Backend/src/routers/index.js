@@ -84,9 +84,9 @@ router.post("/createticket", async (req, res) => {
       startTime,
       endTime,
     });
-
+    // console.log(ticket);
     await ticket.save();
-    console.log("🎫 Ticket saved successfully:", ticket);
+    // console.log("🎫 Ticket saved successfully:", ticket);
     
     // Send success response
     res.status(201).json({
@@ -148,25 +148,27 @@ router.put("/updateticket/:ticketId", auth(["sub-admin", "super-admin"]), async 
 // Route to check the status of a ticket
 router.get("/ticket", async (req, res) => {
   try {
-    const { status,date } = req.query;
-    // console.log(req.query);
+    const { status, date } = req.query;
+
     if (!status) {
       const tickets = await User.Ticket.find({});
-      // console.log(tickets)
       return res.json(tickets);
     }
     const allowedStatuses = ["booked", "declined", "pending"];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
-    const tickets = await User.Ticket.find({ date,status });
-    // console.log(tickets)
-    res.json(tickets);
+    const query = { status };
+    if (date) query.date = date;
+
+    const tickets = await User.Ticket.find(query);
+    return res.json(tickets);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch tickets" });
+    console.error("Error fetching tickets:", err);
+    return res.status(500).json({ error: "Failed to fetch tickets" });
   }
 });
+
 
 const parseRoleEmails = (roleEmailsString) => {
   const roleEmails = {};

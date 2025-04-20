@@ -71,8 +71,8 @@ export default function ViewRequests() {
       const response = await axios.get(
         `${import.meta.env.VITE_BASE_URL}/ticket?status=booked`
       );
-      // console.log(response);
       let DisplayData = response.data.filter(ticket => ticket.email === userId);
+      console.log(response.data);
 
       if (userRole !== "super-admin" && userRole !== "sub-admin") {
         setTickets(DisplayData);
