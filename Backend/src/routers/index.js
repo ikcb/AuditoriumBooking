@@ -1,13 +1,34 @@
 const express = require("express");
 const router = new express.Router();
-const User = require("../models");
+const User = require("../models/index");
 const auth = require("../middleware/auth");
 const bcrypt = require("bcryptjs");
 const { log } = require("console");
+const fileUpload = require('express-fileupload');
+const { uploadToCloudinary } = require('../config/cloudinary');
 const saltRounds = 10;
+require("dotenv").config();
+const path = require('path');
+const os = require('os');
+
+// Use system temp directory instead of '/tmp/'
+const tempDir = os.tmpdir();
+
+// Add file upload middleware
+router.use(fileUpload({
+  useTempFiles: true,
+  tempFileDir: tempDir,
+  createParentPath: true,
+  debug: true,
+  limits: { 
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  abortOnLimit: true,
+  safeFileNames: true,
+  preserveExtension: true
+}));
 
 router.post("/createticket", async (req, res) => {
-
   try {
     const {
       name,
@@ -17,34 +38,67 @@ router.post("/createticket", async (req, res) => {
       date,
       clubname,
       requestType,
-      file,
       startTime,
       endTime,
     } = req.body;
+
+    // Validate required fields
     if (!name || !email || !mobileno || !eventdescription || !date || !startTime || !endTime) {
-      return res.status(400).json({ error: "Please fill up all fields"});
-  }
+      return res.status(400).json({ error: "Please fill up all fields" });
+    }
+
+    // Check if file was uploaded
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({ error: "PDF file is required" });
+    }
+
+    const file = req.files.file;
+
+    // Validate file type
+    if (file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ error: "Only PDF files are allowed" });
+    }
+
+    console.log("Uploading file:", {
+      name: file.name,
+      size: file.size,
+      mimetype: file.mimetype,
+      tempFilePath: file.tempFilePath // Log the temp file path
+    });
+
+    // Upload file to Cloudinary
+    const fileUrl = await uploadToCloudinary(file);
+    console.log("File uploaded successfully:", fileUrl);
+
     const ticket = new User.Ticket({
       name,
       email,
       mobileno,
       eventdescription,
-      date,
+      date: new Date(date),
       clubname: requestType === "club" ? clubname : null,
       requestType,
       status: "pending",
       approvedBy: null,
-      file,
+      file: fileUrl,
       startTime,
       endTime,
     });
+    // console.log(ticket);
     await ticket.save();
-
-    res.status(201).json(ticket);
-    // res.json(ticket);
+    // console.log("🎫 Ticket saved successfully:", ticket);
+    
+    // Send success response
+    res.status(201).json({
+      message: "Booking request created successfully",
+      ticket
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to create a ticket" });
+    console.error("Error creating ticket:", err);
+    res.status(500).json({ 
+      error: "Failed to create a ticket", 
+      details: err.message 
+    });
   }
 });
 
@@ -94,29 +148,57 @@ router.put("/updateticket/:ticketId", auth(["sub-admin", "super-admin"]), async 
 // Route to check the status of a ticket
 router.get("/ticket", async (req, res) => {
   try {
-    const { status } = req.query;
-    console.log(req.query);
+    const { status, date } = req.query;
+
     if (!status) {
       const tickets = await User.Ticket.find({});
-      // console.log(tickets)
       return res.json(tickets);
     }
     const allowedStatuses = ["booked", "declined", "pending"];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
-    const tickets = await User.Ticket.find({ status });
-    // console.log(tickets)
-    res.json(tickets);
+    const query = { status };
+    if (date) query.date = date;
+
+    const tickets = await User.Ticket.find(query);
+    return res.json(tickets);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch tickets" });
+    console.error("Error fetching tickets:", err);
+    return res.status(500).json({ error: "Failed to fetch tickets" });
   }
 });
 
+
+const parseRoleEmails = (roleEmailsString) => {
+  const roleEmails = {};
+  const roleEntries = roleEmailsString.split(';');
+  roleEntries.forEach(entry => {
+    const [role, emails] = entry.split(':');
+    roleEmails[role] = emails.split(',');
+  });
+  return roleEmails;
+};
+
+const roleEmails = parseRoleEmails(process.env.ROLE_EMAILS);
+
 router.post("/Adminregister", async (req, res) => {
-  const { email, username, password, role} = req.body;
+  const { email, username, password } = req.body;
+  let role;
   try {
+    let allowedEmails = false;
+    for(const  key in roleEmails){
+      if(roleEmails[key].includes(email)){
+        role = key;
+        allowedEmails = true;
+        break;
+      }
+    }
+
+    if (!allowedEmails) {
+      return res.status(403).send("Email not allowed for registration");
+    }
+
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     await User.RegistrationUser.create({
       email,
